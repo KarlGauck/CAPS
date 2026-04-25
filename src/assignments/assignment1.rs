@@ -1,24 +1,75 @@
+use std::env::join_paths;
 use std::fmt::Debug;
-use plotters::prelude::*;
+use std::time::{Duration, Instant};
 use num_traits::{Float, NumCast};
 
-pub fn ex1() {
-    sumHelper::<f32>(true);
-}
+use crate::utils::plotting;
 
-fn sumHelper<T: Float + Debug>(reverse: bool) {
-    const SINF: f32 = std::f32::consts::PI;
+pub fn ex1() {
     let ks = [1000, 100000, 10000000, 100000000];
 
+    // (double precision, reversed)
+    let configurations = vec!(
+        (false, false),
+        (false, true),
+        (true, false),
+        (true, true),
+    );
 
-    for k in ks {
+    for (isF64, reversed) in configurations {
+        let (relative_error, duration) = if isF64 {
+            sumHelper::<f64>(reversed)
+        } else {
+            let (e, d) = sumHelper::<f32>(reversed);
+            (e.map(|x| x as f64), d)
+        };
+
+        plotting::line_graph(
+            vec!(
+                ks.map(|x| x as f64).iter().copied().zip(relative_error).collect::<Vec<(f64, f64)>>()
+            ),
+            "Relative error",
+            "Iterations",
+            "log_2(Error)",
+            format!("{}{}Prec-relError.png", if reversed {"rev"} else {"not-rev"}, if isF64 {"double"} else {"single"}).as_str()
+        );
+
+        plotting::line_graph(
+            vec!(
+                ks.map(|x| x as f64).iter().copied().zip(duration.map(|d| d.as_millis() as f64)).collect::<Vec<(f64, f64)>>()
+            ),
+            "Duration",
+            "Iterations",
+            "Milliseconds",
+            format!("{}{}Prec-durations.png", if reversed {"rev"} else {"not-rev"}, if isF64 {"double"} else {"single"}).as_str()
+        );
+    }
+}
+
+fn sumHelper<T: Float + Debug>(reverse: bool) -> ([f64; 4], [Duration; 4]) {
+    let SINF: f64 = std::f64::consts::PI.powf(2.0) / 6.0;
+    let ks = [1000, 100000, 10000000, 100000000];
+
+    let mut relativeError = [0.0; 4];
+    let mut duration = [Duration::new(0, 0); 4];
+
+    for (index, &k) in ks.iter().enumerate() {
         let vec: Vec<T> = if reverse {
             (1..k).rev().map(|x| NumCast::from(x).unwrap()).collect()
         } else {
             (1..k).map(|x| NumCast::from(x).unwrap()).collect()
         };
-        println!("{:?}", sum::<T>(&vec));
+
+        let time = Instant::now();
+        let sum = sum::<T>(&vec);
+
+        duration[index] = time.elapsed();
+        relativeError[index] = Float::abs(sum.to_f64().unwrap() - SINF) / SINF;
     }
+
+    relativeError = relativeError.map(|x| x.log2());
+
+    (relativeError, duration)
 }
 
 pub fn sum<T: Float>(list: &Vec<T>) -> T {
