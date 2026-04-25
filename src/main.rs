@@ -3,6 +3,6 @@ mod assignments;
 mod utils;
 
 fn main() {
-    assignment1::ex2()
+    assignment1::ex3()
 }
 

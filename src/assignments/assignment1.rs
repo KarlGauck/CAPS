@@ -6,6 +6,22 @@ use num_traits::{Float, NumCast};
 use crate::utils::plotting;
 
 
+pub fn ex3() {
+    let a = 1e30f32;
+    let b = 0.0f32;
+    let res = f32::sqrt(a.powf(2.0) + b.powf(2.0));
+    println!("res = {}", res);
+
+    let scale = 1e20f32;
+    let sum = (a/scale).powf(2.0) + (b/scale).powf(2.0);
+    println!("sum = {}", sum);
+    let sqrt = f32::sqrt(sum);
+    println!("sqrt = {}", sqrt);
+    let res = scale * sqrt;
+    println!("res = {}", res);
+}
+
+
 // Determine machine epsilon
 pub fn ex2() {
     let eps32 = machineepsilon::<f32>(0.001f32);
