@@ -5,6 +5,42 @@ use num_traits::{Float, NumCast};
 
 use crate::utils::plotting;
 
+
+// Determine machine epsilon
+pub fn ex2() {
+    let eps32 = machineepsilon::<f32>(0.001f32);
+    let eps64 = machineepsilon::<f64>(0.001f64);
+
+    println!("single precision: {}  double precision: {}   (measured)", eps32, eps64);
+    println!("single precision: {}  double precision: {}   (rust def)", f32::EPSILON, f64::EPSILON);
+}
+
+fn machineepsilon<T: Float>(start: T) -> T {
+    let mut small_end = T::zero();
+    let mut big_end = start;
+
+    let mut last_eps  = T::zero();
+    let mut current_eps = T::one();
+
+    while last_eps != current_eps {
+        last_eps = current_eps;
+        current_eps = (small_end + big_end)/T::from(2.0f64).unwrap();
+
+        let test = (T::one()+current_eps) == T::one();
+
+        if test {
+            small_end = current_eps;
+        } else {
+            big_end = current_eps;
+        }
+
+    };
+
+    big_end
+}
+
+
+// Plot different kinds of floatingpoint errors
 pub fn ex1() {
     let ks = [1000, 100000, 10000000, 100000000];
 
