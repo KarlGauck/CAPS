@@ -4,15 +4,17 @@ use ndarray::prelude::*;
 use plotters::coord::ranged1d::ValueFormatter;
 use plotters::coord::Shift;
 
-pub fn line_graph(lines: Vec<Vec<(f64, f64)>>, logarithmic_y: bool, title: &str, x_label: &str, y_label: &str, path: &str) {
+pub fn line_graph(lines: Vec<(Vec<(f64, f64)>, String)>, logarithmic_y: bool, title: &str, x_label: &str, y_label: &str, path: &str) {
     let root = BitMapBackend::new(path, (800, 600)).into_drawing_area();
     root.fill(&WHITE).unwrap();
 
+    let flat_lines: Vec<_> = lines.iter().map(|e|e.0.clone()).flatten().collect();
 
-    let max_x = lines.iter().flatten().copied().map(|(x, y)| x).reduce(f64::max).unwrap();
-    let min_x = lines.iter().flatten().copied().map(|(x, y)| x).reduce(f64::min).unwrap();
-    let max_y = lines.iter().flatten().copied().map(|(x, y)| y).reduce(f64::max).unwrap();
-    let min_y = lines.iter().flatten().copied().map(|(x, y)| y).reduce(f64::min).unwrap();
+    let max_x = flat_lines.iter().map(|e|e.0).reduce(f64::max).unwrap();
+    let min_x = flat_lines.iter().map(|e|e.0).reduce(f64::min).unwrap();
+    let max_y = flat_lines.iter().map(|e|e.1).reduce(f64::max).unwrap();
+    let min_y = flat_lines.iter().map(|e|e.1).reduce(f64::min).unwrap();
+
     let x_axis = min_x..max_x;
     let y_axis = min_y..max_y;
 
@@ -32,21 +34,38 @@ pub fn line_graph(lines: Vec<Vec<(f64, f64)>>, logarithmic_y: bool, title: &str,
     root.present().unwrap();
 }
 
-fn draw_stuff<DB, XT, YT>(
-    chart: &mut ChartContext<DB, Cartesian2d<XT, YT>>,
-    lines: Vec<Vec<(f64, f64)>>,
+const COLORS: &[RGBColor] = &[RED, BLUE, GREEN, MAGENTA];
+
+fn draw_stuff<'a, DB, XT, YT>(
+    chart: &mut ChartContext<'a, DB, Cartesian2d<XT, YT>>,
+    lines: Vec<(Vec<(f64, f64)>, String)>,
     x_label: &str,
     y_label: &str
 ) where
-    DB: DrawingBackend,
+    DB: DrawingBackend + 'a,
     XT: Ranged<ValueType = f64> + ValueFormatter<f64>,
     YT: Ranged<ValueType = f64> + ValueFormatter<f64>,
 {
-    chart.configure_mesh()
+    chart
+        .configure_mesh()
         .x_desc(x_label)
-        .y_desc(y_label).draw().unwrap();
+        .y_desc(y_label)
+        .draw()
+        .unwrap();
 
-    for points in lines {
-        chart.draw_series(LineSeries::new(points, &RED).point_size(2)).unwrap();
+    for (i, (points, label)) in lines.into_iter().enumerate() {
+        let color = COLORS[i % COLORS.len()];
+        chart
+            .draw_series(LineSeries::new(points, &color).point_size(2))
+            .unwrap()
+            .label(label)
+            .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], color));
     }
+
+    chart
+        .configure_series_labels()
+        .background_style(WHITE.mix(0.8))
+        .border_style(BLACK)
+        .draw()
+        .unwrap();
 }
