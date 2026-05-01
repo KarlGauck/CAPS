@@ -30,18 +30,18 @@ pub fn ex4() {
         data[i] = current;
     }
 
-    plotting::line_graph(
-        vec!(
-            (0..MAX_ITERATIONS).map(|x| x as f64).zip(data.map(|x| f64::abs(x - std::f64::consts::PI))).collect(),
-            (0..MAX_ITERATIONS).map(|x| x as f64).zip(data0.map(|x| f64::abs(x - std::f64::consts::PI))).collect(),
-            (0..MAX_ITERATIONS).map(|x| x as f64).zip((0..MAX_ITERATIONS).map(|x| f64::EPSILON)).collect()
-        ),
-        true,
-        "PI Approximation Error",
-        "iterations",
-        "error",
-        "pi_error.png"
-    )
+    // plotting::line_graph(
+    //     vec!(
+    //         (0..MAX_ITERATIONS).map(|x| x as f64).zip(data.map(|x| f64::abs(x - std::f64::consts::PI))).collect(),
+    //         (0..MAX_ITERATIONS).map(|x| x as f64).zip(data0.map(|x| f64::abs(x - std::f64::consts::PI))).collect(),
+    //         (0..MAX_ITERATIONS).map(|x| x as f64).zip((0..MAX_ITERATIONS).map(|x| f64::EPSILON)).collect()
+    //     ),
+    //     true,
+    //     "PI Approximation Error",
+    //     "iterations",
+    //     "error",
+    //     "pi_error.png"
+    // )
 }
 
 fn pi_iteration(an: f64, n: i32) -> f64 {
@@ -107,8 +107,8 @@ fn machineepsilon<T: Float>(start: T) -> T {
 
 
 // Plot different kinds of floatingpoint errors
-pub fn ex1() {
-    let ks = [1000, 100000, 10000000, 100000000];
+pub fn ex1(path: &str) {
+    let ks = [1e3, 1e6, 1e7, 1e8];
 
     // (double precision, reversed)
     let configurations = vec!(
@@ -118,44 +118,68 @@ pub fn ex1() {
         (true, true),
     );
 
-    for (is_f64, reversed) in configurations {
-        let (relative_error, duration) = if is_f64 {
-            sum_helper::<f64>(reversed)
+    let mut rel_error_lines = Vec::new();
+    let mut duration_lines = Vec::new();
+    let mut abs_lines = Vec::new();
+
+    let ksx = ks.map(|x| x);
+
+    for (is_f64, is_reversed) in configurations {
+        let (relative_error, duration, a) = if is_f64 {
+            sum_helper::<f64>(is_reversed)
         } else {
-            let (e, d) = sum_helper::<f32>(reversed);
-            (e.map(|x| x as f64), d)
+            let (e, d, a) = sum_helper::<f32>(is_reversed);
+            (e.map(|x| x as f64), d, a)
         };
 
-        plotting::line_graph(
-            vec!(
-                ks.map(|x| x as f64).iter().copied().zip(relative_error).collect::<Vec<(f64, f64)>>()
-            ),
-            true,
-            "Relative error",
-            "Iterations",
-            "Error",
-            format!("{}{}Prec-relError.png", if reversed {"rev"} else {"not-rev"}, if is_f64 {"double"} else {"single"}).as_str()
-        );
+        let label = format!("{}, {}", if is_f64 {"f64"} else {"f32"}, if is_reversed {"reversed"} else {"forwards"});
 
-        plotting::line_graph(
-            vec!(
-                ks.map(|x| x as f64).iter().copied().zip(duration.map(|d| d.as_millis() as f64)).collect::<Vec<(f64, f64)>>()
-            ),
-            false,
-            "Duration",
-            "Iterations",
-            "Milliseconds",
-            format!("{}{}Prec-durations.png", if reversed {"rev"} else {"not-rev"}, if is_f64 {"double"} else {"single"}).as_str()
-        );
+        rel_error_lines.push((ksx.iter().cloned().zip(relative_error).collect::<Vec<(f64, f64)>>(), label.clone()));
+        duration_lines.push((ksx.iter().cloned().zip(duration.map(|d| d.as_millis() as f64)).collect::<Vec<(f64, f64)>>(), label.clone()));
+        abs_lines.push((ksx.iter().cloned().zip(a).collect(), label.clone()));
     }
+
+    let rel_error_path = format!("{path}/Prec-relError.png");
+    let duration_path = format!("{path}/Prec-durations.png");
+    let abs_path = format!("{path}/Prec-abs.png");
+    println!("Saving to {rel_error_path}, {duration_path}, {abs_path}");
+
+    plotting::line_graph(
+        rel_error_lines,
+        true,
+        "Relative error",
+        "Iterations",
+        "Error",
+        &rel_error_path
+    );
+
+    plotting::line_graph(
+        duration_lines,
+        false,
+        "Duration",
+        "Iterations",
+        "Milliseconds",
+        &duration_path
+    );
+
+    plotting::line_graph(
+        abs_lines,
+        false,
+        "Values",
+        "Iterations",
+        "Value",
+        &abs_path
+    );
+
 }
 
-fn sum_helper<T: Float + Debug>(reverse: bool) -> ([f64; 4], [Duration; 4]) {
+fn sum_helper<T: Float + Debug>(reverse: bool) -> ([f64; 4], [Duration; 4], [f64; 4]) {
     let sinf: f64 = std::f64::consts::PI.powf(2.0) / 6.0;
     let ks = [1000, 100000, 10000000, 100000000];
 
     let mut relative_error = [0.0; 4];
     let mut duration = [Duration::new(0, 0); 4];
+    let mut abs = [0.0; 4];
 
     for (index, &k) in ks.iter().enumerate() {
         let vec: Vec<T> = if reverse {
@@ -169,9 +193,10 @@ fn sum_helper<T: Float + Debug>(reverse: bool) -> ([f64; 4], [Duration; 4]) {
 
         duration[index] = time.elapsed();
         relative_error[index] = Float::abs(sum.to_f64().unwrap() - sinf) / sinf;
+        abs[index] = NumCast::from(sum).unwrap();
     }
 
-    (relative_error, duration)
+    (relative_error, duration, abs)
 }
 
 pub fn sum<T: Float>(list: &Vec<T>) -> T {
