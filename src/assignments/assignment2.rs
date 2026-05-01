@@ -1,7 +1,8 @@
 use std::{f64, usize};
-use std::fmt::format;
-use std::iter::zip;
 use crate::utils;
+use chrono;
+use chrono::{DateTime, Datelike, NaiveDate};
+use crate::utils::plotting::PlotConfig;
 
 fn mean_anomaly(time: f64, phase: f64, period: f64) -> f64 {
     2. * std::f64::consts::PI * (time - phase) / period
@@ -29,6 +30,13 @@ struct Orbit {
     semimajor_axis: f64,
 }
 
+struct PlanetPositionJ2000 {
+    semimajor_axis: f64,
+    eccentricity: f64,
+    phi0: f64,
+    mean_longitude: f64,
+}
+
 
 fn calculate_starting_mean_anomalies(points_on_orbit: usize) -> Vec<f64> {
     (0..points_on_orbit).map(|x| ((x as f64)/(points_on_orbit as f64)) * 2. * f64::consts::PI).collect()
@@ -45,9 +53,8 @@ fn get_initial_eccentricity(orbit: &Orbit, mean_anomaly: &f64) -> f64 {
 
 
 // Distribute a number of points equally over [0, 2pi] for the mean anomalies, then approximate the eccentric anomalies using fixedpoint method
-fn calculate_orbit_basic_fixpoint(orbit: &Orbit, points_on_orbit: usize, precision: f64) -> (Vec<f64>, Vec<usize>) {
+fn calculate_orbit_basic_fixpoint(orbit: &Orbit, mean_anomalies: &Vec<f64>, precision: f64) -> (Vec<f64>, Vec<usize>) {
 
-    let mean_anomalies = calculate_starting_mean_anomalies(points_on_orbit);
     let eccentric_anomalies: Vec<(f64, usize)> = mean_anomalies.iter().map(|mean_anomaly|
         fixed_point_iteration(precision, get_initial_eccentricity(&orbit, mean_anomaly), |old_eccentric_anomaly, _iterations| {
             // Default fixedpoint iteration
@@ -58,9 +65,7 @@ fn calculate_orbit_basic_fixpoint(orbit: &Orbit, points_on_orbit: usize, precisi
     eccentric_anomalies.into_iter().unzip()
 }
 
-fn calculate_orbit_newton_raphson(orbit: &Orbit, points_on_orbit: usize, precision: f64) -> (Vec<f64>, Vec<usize>) {
-    let mean_anomalies = calculate_starting_mean_anomalies(points_on_orbit);
-
+fn calculate_orbit_newton_raphson(orbit: &Orbit, mean_anomalies: &Vec<f64>, precision: f64) -> (Vec<f64>, Vec<usize>) {
     let eccentric_anomalies: Vec<(f64, usize)> = mean_anomalies.iter().map(|mean_anomaly|
         fixed_point_iteration(precision, get_initial_eccentricity(&orbit, mean_anomaly), |old_eccentric_anomaly, _iterations| {
             // Newton Raphson
@@ -95,28 +100,90 @@ fn calculate_orbit_positions(orbit: &Orbit, eccentric_anomalies: Vec<f64>) -> Ve
 }
 
 
+const EARTH_SEMIMAJOR_AXIS: f64 = 1.0;
+const EARTH_PERIOD: f64 = 1.0;
+
+fn orbital_period(semimajor_axis: f64) -> f64{
+    semimajor_axis.sqrt().powf(3.0)
+}
+
+
 pub fn ex1() {
     let orbits = vec!(
         Orbit { eccentricity: 0.205, semimajor_axis: 0.39 },   // Mercury
         Orbit { eccentricity: 0.967, semimajor_axis: 17.8 },   // Halley's comet
     );
 
+    let precision = 1e-9;
+
+    let points_on_orbit = 256;
+    let mean_anomalies = calculate_starting_mean_anomalies(points_on_orbit);
+
     for orbit in orbits {
-        let precision = 1e-9;
-        let points_on_orbit = 256;
 
-
-        let default_result = calculate_orbit_basic_fixpoint(&orbit, points_on_orbit, precision);
+        let default_result = calculate_orbit_basic_fixpoint(&orbit, &mean_anomalies, precision);
         let default = calculate_orbit_positions(&orbit, default_result.0);
 
-        let newton_result = calculate_orbit_newton_raphson(&orbit, points_on_orbit, precision);
+        let newton_result = calculate_orbit_newton_raphson(&orbit, &mean_anomalies, precision);
         let newton = calculate_orbit_positions(&orbit, newton_result.0);
 
         utils::plotting::line_graph(
             vec!(
                 (default.iter().map(|(x, y)| (*x, y + 5.0)).collect(), format!("Fixepoint:  {:?} Iterations", default_result.1.iter().copied().reduce(usize::max).unwrap())),
                 (newton, format!("Newton Raphson:  {:?} Iterations", newton_result.1.iter().copied().reduce(usize::max).unwrap()))
-            )
-        , false, "Orbit (slight y-offset for better visibility)", "x in AU", "y in AU", "orbit.png")
+            ),
+            PlotConfig::default().title("Orbit (slight y-offset for better visibility)").x_label("x in AU").y_label("y in AU"),
+            "orbit.png"
+        )
     }
+
+
+    let starting_date = NaiveDate::from_ymd_opt(1985, 1, 1).unwrap();
+    let end_date = NaiveDate::from_ymd_opt(2024, 5, 29).unwrap();
+    let j2000 = NaiveDate::from_ymd_opt(2000, 1, 1).unwrap();
+
+    let points_per_year = 200;
+    let point_ratio = (points_per_year as f64) / 365.0;
+    let time_duration_days = (end_date - starting_date).num_days().abs();
+    let num_points = ((time_duration_days as f64) * point_ratio) as i64;
+
+    println!("Num points: {:?}", num_points);
+
+
+
+    let planets = vec!{
+        PlanetPositionJ2000 { semimajor_axis: EARTH_SEMIMAJOR_AXIS, eccentricity: 0.0167, phi0: 102.95, mean_longitude: 100.46 }, // earth
+        PlanetPositionJ2000 { semimajor_axis: 1.524, eccentricity: 0.0934, phi0: 336.04, mean_longitude: 355.45 }  // mars
+    };
+
+    let orbits: Vec<Vec<(f64, f64)>> = planets.iter().map(|planet| {
+        let orbit = Orbit {
+            semimajor_axis: planet.semimajor_axis,
+            eccentricity: planet.eccentricity,
+        };
+
+        let orbital_period = orbital_period(planet.semimajor_axis);
+
+        let j2000_diff = (starting_date - j2000).num_days().abs();
+        let starting_mean_anomaly = planet.mean_longitude - planet.phi0 + (j2000_diff as f64) * 2.0 * f64::consts::PI / orbital_period;
+
+
+        let anomalies: Vec<f64> = (0..num_points).map( |point| {
+            2.0 * f64::consts::PI * (point as f64 / points_per_year as f64) /orbital_period + starting_mean_anomaly
+        }).collect();
+
+        let positions = calculate_orbit_positions(&orbit, calculate_orbit_newton_raphson(&orbit, &anomalies, precision).0);
+        println!("positions: {:?}", positions.len());
+        positions
+    }).collect();
+
+    let distances = orbits[0].iter().zip(&orbits[1]).map(|((x1, y1), (x2, y2))| f64::sqrt((x2-x1).powf(2.0) + (y2-y1).powf(2.0))).collect::<Vec<_>>();
+    let plot = ((0..num_points).map(|x| (starting_date.year() as f64) + ((x as f64) / (points_per_year as f64))).zip(distances).collect::<Vec<_>>(), "Distance".to_string());
+
+    utils::plotting::line_graph(
+        vec!(plot),
+        PlotConfig::default().title("Mercury / Earth distance").x_label("year").y_label("distance in AU").point_size(1),
+        "distance.png"
+    );
+
 }
