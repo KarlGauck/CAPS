@@ -1,4 +1,5 @@
 use std::{f64, usize};
+use std::fmt::format;
 use std::iter::zip;
 use crate::utils;
 
@@ -29,21 +30,43 @@ struct Orbit {
 }
 
 
+fn calculate_starting_mean_anomalies(points_on_orbit: usize) -> Vec<f64> {
+    (0..points_on_orbit).map(|x| ((x as f64)/(points_on_orbit as f64)) * 2. * f64::consts::PI).collect()
+}
+
+fn get_initial_eccentricity(orbit: &Orbit, mean_anomaly: &f64) -> f64 {
+    let ecc_threshold = 0.8;
+    if (orbit.eccentricity < ecc_threshold) {
+        *mean_anomaly
+    } else {
+        f64::consts::PI
+    }
+}
+
+
 // Distribute a number of points equally over [0, 2pi] for the mean anomalies, then approximate the eccentric anomalies using fixedpoint method
 fn calculate_orbit_basic_fixpoint(orbit: &Orbit, points_on_orbit: usize, precision: f64) -> (Vec<f64>, Vec<usize>) {
-    let get_initial_value = |orbit: &Orbit, mean_anomaly: &f64| -> f64 {
-        let ecc_threshold = 0.8;
-        if (orbit.eccentricity < ecc_threshold) {
-            *mean_anomaly
-        } else {
-            f64::consts::PI
-        }
-    };
 
-    let mean_anomalies: Vec<f64> = (0..points_on_orbit).map(|x| ((x as f64)/(points_on_orbit as f64)) * 2. * f64::consts::PI).collect();
+    let mean_anomalies = calculate_starting_mean_anomalies(points_on_orbit);
     let eccentric_anomalies: Vec<(f64, usize)> = mean_anomalies.iter().map(|mean_anomaly|
-        fixed_point_iteration(precision, get_initial_value(&orbit, mean_anomaly), |old_eccentric_anomaly, _iterations| {
+        fixed_point_iteration(precision, get_initial_eccentricity(&orbit, mean_anomaly), |old_eccentric_anomaly, _iterations| {
+            // Default fixedpoint iteration
             mean_anomaly + orbit.eccentricity * f64::sin(*old_eccentric_anomaly)
+        })
+    ).collect();
+
+    eccentric_anomalies.into_iter().unzip()
+}
+
+fn calculate_orbit_newton_raphson(orbit: &Orbit, points_on_orbit: usize, precision: f64) -> (Vec<f64>, Vec<usize>) {
+    let mean_anomalies = calculate_starting_mean_anomalies(points_on_orbit);
+
+    let eccentric_anomalies: Vec<(f64, usize)> = mean_anomalies.iter().map(|mean_anomaly|
+        fixed_point_iteration(precision, get_initial_eccentricity(&orbit, mean_anomaly), |old_eccentric_anomaly, _iterations| {
+            // Newton Raphson
+            let g = old_eccentric_anomaly - orbit.eccentricity * old_eccentric_anomaly.sin() - mean_anomaly;
+            let dg = 1.0 - orbit.eccentricity * old_eccentric_anomaly.cos();
+            old_eccentric_anomaly - g/dg
         })
     ).collect();
 
@@ -79,20 +102,21 @@ pub fn ex1() {
     );
 
     for orbit in orbits {
-        let precisions = vec!(0.1, 0.01, 0.001);
+        let precision = 1e-9;
         let points_on_orbit = 256;
 
-        let orbit_results: Vec<(Vec<(f64, f64)>, String)> = precisions.iter().map(|precision| {
-            let fixpoint_result = calculate_orbit_basic_fixpoint(&orbit, points_on_orbit, *precision);
-            let eccentric_anomalies = fixpoint_result.0;
-            let points = calculate_orbit_positions(
-                &orbit, eccentric_anomalies);
 
-            (points, format!("precision: {precision}, iterations: {:?}", fixpoint_result.1.iter().copied().reduce(usize::max)))
-        }).collect();
+        let default_result = calculate_orbit_basic_fixpoint(&orbit, points_on_orbit, precision);
+        let default = calculate_orbit_positions(&orbit, default_result.0);
+
+        let newton_result = calculate_orbit_newton_raphson(&orbit, points_on_orbit, precision);
+        let newton = calculate_orbit_positions(&orbit, newton_result.0);
 
         utils::plotting::line_graph(
-            orbit_results
-        , false, "Orbit", "x in AU", "y in AU", "orbit.png")
+            vec!(
+                (default.iter().map(|(x, y)| (*x, y + 5.0)).collect(), format!("Fixepoint:  {:?} Iterations", default_result.1.iter().copied().reduce(usize::max).unwrap())),
+                (newton, format!("Newton Raphson:  {:?} Iterations", newton_result.1.iter().copied().reduce(usize::max).unwrap()))
+            )
+        , false, "Orbit (slight y-offset for better visibility)", "x in AU", "y in AU", "orbit.png")
     }
 }
