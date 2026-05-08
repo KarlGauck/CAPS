@@ -191,3 +191,25 @@ pub fn ex1() {
     );
 
 }
+
+pub fn ex3() {
+    let g: f64 = 6.674e-11;
+    let big_m: f64 = 5.974e24;
+    let small_m: f64 = 7.348e22;
+    let r_moon: f64 = 3.844e8;
+    let omega: f64 = 2.662e-6;
+
+    let f = |r: f64| {
+        g * big_m / r.powi(2) - g * small_m / (r_moon - r).powi(2) - omega.powi(2) * r
+    };
+
+    let df = |r: f64| {
+        -2.0 * g * big_m / r.powi(3) - 2.0 * g * small_m / (r_moon - r).powi(3) - omega.powi(2)
+    };
+
+    let precision = 1e-6;
+    let (r_l1, iterations) = fixed_point_iteration(precision, r_moon / 2.0, |r, _| r - f(r) / df(r));
+
+    println!("L1 Lagrange point: {:.4e} m ({} iterations)", r_l1, iterations);
+    println!("Distance from Moon: {:.4e} m", r_moon - r_l1);
+}
