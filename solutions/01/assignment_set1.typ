@@ -166,17 +166,19 @@ $ A_(n+1) = 2^n sqrt(2 lr((1 - sqrt(1 - lr((A_n / 2^n))^2)))), $ <eq4>
 
 #part("1") Implement the recursion @eq4 and reproduce the error plot (|$A_n - pi$| vs.\ number of iterations). You should observe divergence after iteration 15.
 
-TODO: answer
+#image("img/pi_error.png")
+The plot of @eq4 is in the blue line.
 
 #part("2") Explain why the error grows after iteration 15, even though double precision nominally offers $~10^(-15)$ accuracy.
 
-TODO: answer
+The error grows as the numbers being subtracted under the root get smaller and smaller and with them the error in the subtraction calculation. After a certain threshold, the error explodes and leads to the divergence.
 
 #part("3") Kahan's stable reformulation replaces @eq4 with
-$ Z_n = frac(2 lr((A_n / 2^(n+1)))^2, 1 + sqrt(1 - lr((A_n / 2^n))^2)), quad A_(n+1) = 2^n sqrt(4 Z_n). $
+$ Z_n = frac(2 lr((A_n / 2^(n+1)))^2, 1 + sqrt(1 - lr((A_n / 2^n))^2)), quad A_(n+1) = 2^n sqrt(4 Z_n). $ <eq5>
 Implement this alternative and explain the improvement.
 
-TODO: answer
+@eq5 is shown in the graph in the red line.
+The improvement stems from the algorithm using a seperate variable to "save" the lost precision like a carry.
 
 // End line
 #v(0.5cm)
