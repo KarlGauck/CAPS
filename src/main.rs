@@ -8,7 +8,8 @@ fn main() {
     // assignment1::ex2();
     // assignment1::ex3();
     // assignment1::ex4()
-    assignment2::ex1();
+    // assignment2::ex1();
+    assignment2::ex3();
 
     println!("done");
 }
