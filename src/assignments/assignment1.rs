@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use num_traits::{Float, NumCast};
 
 use crate::utils::plotting;
-
+use crate::utils::plotting::PlotConfig;
 
 pub fn ex4() {
     const MAX_ITERATIONS: usize = 25;
@@ -146,28 +146,19 @@ pub fn ex1(path: &str) {
 
     plotting::line_graph(
         rel_error_lines,
-        true,
-        "Relative error",
-        "Iterations",
-        "Error",
+        PlotConfig::default().title("Relative error").x_label("Iterations").y_label("Error").logarithmic_y(true),
         &rel_error_path
     );
 
     plotting::line_graph(
         duration_lines,
-        false,
-        "Duration",
-        "Iterations",
-        "Milliseconds",
+        PlotConfig::default().title("Duration").x_label("Duration").y_label("Milliseconds"),
         &duration_path
     );
 
     plotting::line_graph(
         abs_lines,
-        false,
-        "Values",
-        "Iterations",
-        "Value",
+        PlotConfig::default().title("Values").x_label("Iterations").y_label("Value"),
         &abs_path
     );
 
