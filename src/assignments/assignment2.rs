@@ -28,6 +28,7 @@ fn fixed_point_iteration<T, F>(precision: T, starting_value: T, process: F) -> (
 struct Orbit {
     eccentricity: f64,
     semimajor_axis: f64,
+    name: String,
 }
 
 struct PlanetPositionJ2000 {
@@ -110,8 +111,8 @@ fn orbital_period(semimajor_axis: f64) -> f64{
 
 pub fn ex1() {
     let orbits = vec!(
-        Orbit { eccentricity: 0.205, semimajor_axis: 0.39 },   // Mercury
-        Orbit { eccentricity: 0.967, semimajor_axis: 17.8 },   // Halley's comet
+        Orbit { eccentricity: 0.205, semimajor_axis: 0.39, name: "mercury".to_owned() },   // Mercury
+        Orbit { eccentricity: 0.967, semimajor_axis: 17.8, name: "halley".to_owned() },   // Halley's comet
     );
 
     let precision = 1e-9;
@@ -127,13 +128,15 @@ pub fn ex1() {
         let newton_result = calculate_orbit_newton_raphson(&orbit, &mean_anomalies, precision);
         let newton = calculate_orbit_positions(&orbit, newton_result.0);
 
+        let y_offset = default.iter().map(|(_,y)| y).copied().reduce(f64::max).unwrap() * 0.02;
+
         utils::plotting::line_graph(
             vec!(
-                (default.iter().map(|(x, y)| (*x, y + 5.0)).collect(), format!("Fixepoint:  {:?} Iterations", default_result.1.iter().copied().reduce(usize::max).unwrap())),
+                (default.iter().map(|(x, y)| (*x, y + y_offset)).collect(), format!("Fixepoint:  {:?} Iterations", default_result.1.iter().copied().reduce(usize::max).unwrap())),
                 (newton, format!("Newton Raphson:  {:?} Iterations", newton_result.1.iter().copied().reduce(usize::max).unwrap()))
             ),
             PlotConfig::default().title("Orbit (slight y-offset for better visibility)").x_label("x in AU").y_label("y in AU"),
-            "orbit.png"
+            &format!("solutions/02/img/orbit_{}.png", orbit.name)
         )
     }
 
@@ -160,6 +163,7 @@ pub fn ex1() {
         let orbit = Orbit {
             semimajor_axis: planet.semimajor_axis,
             eccentricity: planet.eccentricity,
+            name: "earth".to_owned()
         };
 
         let orbital_period = orbital_period(planet.semimajor_axis);
@@ -182,8 +186,30 @@ pub fn ex1() {
 
     utils::plotting::line_graph(
         vec!(plot),
-        PlotConfig::default().title("Mercury / Earth distance").x_label("year").y_label("distance in AU").point_size(1),
-        "distance.png"
+        PlotConfig::default().title("Mars / Earth distance").x_label("year").y_label("distance in AU").point_size(1),
+        "solutions/02/img/distance.png"
     );
 
+}
+
+pub fn ex3() {
+    let g: f64 = 6.674e-11;
+    let big_m: f64 = 5.974e24;
+    let small_m: f64 = 7.348e22;
+    let r_moon: f64 = 3.844e8;
+    let omega: f64 = 2.662e-6;
+
+    let f = |r: f64| {
+        g * big_m / r.powi(2) - g * small_m / (r_moon - r).powi(2) - omega.powi(2) * r
+    };
+
+    let df = |r: f64| {
+        -2.0 * g * big_m / r.powi(3) - 2.0 * g * small_m / (r_moon - r).powi(3) - omega.powi(2)
+    };
+
+    let precision = 1e-6;
+    let (r_l1, iterations) = fixed_point_iteration(precision, r_moon / 2.0, |r, _| r - f(*r) / df(*r));
+
+    println!("L1 Lagrange point: {:.4e} m ({} iterations)", r_l1, iterations);
+    println!("Distance from Moon: {:.4e} m", r_moon - r_l1);
 }

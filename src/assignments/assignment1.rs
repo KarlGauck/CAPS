@@ -32,9 +32,9 @@ pub fn ex4() {
 
     // plotting::line_graph(
     //     vec!(
-    //         (0..MAX_ITERATIONS).map(|x| x as f64).zip(data.map(|x| f64::abs(x - std::f64::consts::PI))).collect(),
-    //         (0..MAX_ITERATIONS).map(|x| x as f64).zip(data0.map(|x| f64::abs(x - std::f64::consts::PI))).collect(),
-    //         (0..MAX_ITERATIONS).map(|x| x as f64).zip((0..MAX_ITERATIONS).map(|x| f64::EPSILON)).collect()
+    //         ((0..MAX_ITERATIONS).map(|x| x as f64).zip(data.map(|x| f64::abs(x - std::f64::consts::PI))).collect(), "a".to_string()),
+    //         ((0..MAX_ITERATIONS).map(|x| x as f64).zip(data0.map(|x| f64::abs(x - std::f64::consts::PI))).collect(), "b".to_string()),
+    //         ((0..MAX_ITERATIONS).map(|x| x as f64).zip((0..MAX_ITERATIONS).map(|x| f64::EPSILON)).collect(), "c".to_string())
     //     ),
     //     true,
     //     "PI Approximation Error",
