@@ -125,7 +125,7 @@ pub fn ex1(path: &str) {
     let ksx = ks.map(|x| x);
 
     for (is_f64, is_reversed) in configurations {
-        let (relative_error, duration, a) = if is_f64 {
+        let (relative_error, duration, absolute_error) = if is_f64 {
             sum_helper::<f64>(is_reversed)
         } else {
             let (e, d, a) = sum_helper::<f32>(is_reversed);
@@ -136,7 +136,7 @@ pub fn ex1(path: &str) {
 
         rel_error_lines.push((ksx.iter().cloned().zip(relative_error).collect::<Vec<(f64, f64)>>(), label.clone()));
         duration_lines.push((ksx.iter().cloned().zip(duration.map(|d| d.as_millis() as f64)).collect::<Vec<(f64, f64)>>(), label.clone()));
-        abs_lines.push((ksx.iter().cloned().zip(a).collect(), label.clone()));
+        abs_lines.push((ksx.iter().cloned().zip(absolute_error).collect(), label.clone()));
     }
 
     let rel_error_path = format!("{path}/Prec-relError.png");
