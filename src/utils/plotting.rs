@@ -1,5 +1,6 @@
 use plotters::prelude::*;
 use std::ops::Range;
+use std::path::Path;
 use ndarray::prelude::*;
 use plotters::coord::ranged1d::ValueFormatter;
 use plotters::coord::Shift;
@@ -73,6 +74,10 @@ fn make_log(p: (f64, f64), log_x: bool, log_y: bool) -> (f64, f64) {
 }
 
 pub fn line_graph(lines: Vec<(Vec<(f64, f64)>, String)>, config: PlotConfig, path: &str) {
+    // create img dir
+    let path_prefix = Path::new(path).parent().unwrap();
+    std::fs::create_dir_all(path_prefix).unwrap();
+
     let root = BitMapBackend::new(path, (800, 600)).into_drawing_area();
     root.fill(&WHITE).unwrap();
 
