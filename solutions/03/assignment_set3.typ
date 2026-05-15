@@ -69,7 +69,7 @@
     Computational Astrophysics Exercises
   ]
   #v(2pt)
-  #text(size: 13pt)[Assignments Set 2 — Summer Term 2026]
+  #text(size: 13pt)[Assignments Set 3 — Summer Term 2026]
   #v(4pt)
   #grid(
     align: left,
@@ -79,7 +79,7 @@
     row-gutter: 5pt,
     grid.cell(rowspan: 2, [*Names:*]),
     [Karl Gauck, 6754404],
-    [#align(right)[*Date:* 08.05.26]],
+    [#align(right)[*Date:* 15.05.26]],
     [Benedict Sondershaus, 6678384],
   )
   #v(0.3cm)
@@ -134,3 +134,37 @@ The stable solution from *(c)* is again susceptible to catastrophic cancellation
 $ r_2 = (2 c) / (-b + sqrt(b^2 - 4 a c)) $
 
 The implementation can be found in ```rust final_stable_solution(a,b,c)```
+
+#pagebreak()
+
+// ------------------------------------------
+// Ex 2
+// ------------------------------------------
+#exercise([2], [Interpolation], [7])
+
+#part("a")
+The Runge function $f(x) = 1/(1+x^2)$ is interpolated on $[-5, 5]$ using Newton interpolation for polynomial degrees $n = 12$ and $n = 20$. The divided difference coefficients are computed in the method ```rust make_pol_line(n)``` via the given pseudocode.
+
+With equidistant nodes the *Runge phenomenon* is visible: Both polynomials diverge near the endpoints $x = plus.minus 5$, with $n = 20$ being surprisingly worse than $n = 12$ (so higher degree doesn't always increase precision). 
+
+#grid(
+  columns: 2,
+  column-gutter: 10pt,
+  [#figure(image("img/pol_range4.png"), caption: [Interpolation polynomials $P_(12)$ and $P_(20)$ with equidistant nodes on $[-4,4]$ for better visibility of the interpolation. Runge phenomenon is already visible at the edges.])],
+  [#figure(image("img/pol_range5.png"), caption: [Interpolation polynomials $P_(12)$ and $P_(20)$ with equidistant nodes on $[-5,5]$. Boundary divergence is strongly amplified compared to $[-4,4]$.])],
+)
+
+#part("b")
+$W(x) = product_(i=0)^n (x - x_i)$ is computed in ```rust make_W_line(n)``` and plotted alongside all other plots. With equidistant nodes it grows to values on the order of $10^(12)$ near the interval edges for $n=12$, and the $n = 20$ $W$-function oscillates with even larger amplitude across the whole interval.
+
+#part("c")
+With Chebyshev nodes the $W(x)$ function is orders of magnitude smaller and the error is spread across the interval rather than spiking at the edges.
+
+#grid(
+  columns: 2,
+  column-gutter: 10pt,
+  [#figure(image("img/pol_error_w.png"), caption: [Interpolation error and $W(x)$ with equidistant nodes. The scale reaches $~10^(12)$, dominated by boundary blow-up.])],
+  [#figure(image("img/pol_error_w_ch.png"), caption: [Interpolation error and $W(x)$ with Chebyshev nodes. The boundary blow-up is not visible anymore and $W(x)$ is spread along the interval.])],
+  [#figure(image("img/pol_error.png"), caption: [Absolute interpolation error with equidistant nodes. The error is largest near $x = plus.minus 5$ and increases with degree.])],
+  [#figure(image("img/pol_error_ch.png"), caption: [Absolute interpolation error with Chebyshev nodes. The error is small and evenly distributed across the interval for both degrees.])],
+)

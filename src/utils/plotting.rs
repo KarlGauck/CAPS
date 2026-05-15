@@ -1,4 +1,5 @@
 use plotters::prelude::*;
+use plotters::style::full_palette::{GREY, ORANGE, PURPLE};
 use std::ops::Range;
 use std::path::Path;
 use ndarray::prelude::*;
@@ -142,7 +143,7 @@ fn log_label(v: f64) -> String {
     format!("1e{}", v as i32)
 }
 
-const COLORS: &[RGBColor] = &[RED, BLUE, GREEN, MAGENTA];
+const COLORS: &[RGBColor] = &[RED, BLUE, GREEN, MAGENTA, ORANGE, GREY, PURPLE];
 
 fn draw_stuff<'a, DB, XT, YT>(
     chart: &mut ChartContext<'a, DB, Cartesian2d<XT, YT>>,

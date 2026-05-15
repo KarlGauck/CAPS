@@ -1,4 +1,4 @@
-use core::error;
+use core::{error, f64};
 use std::fmt::Debug;
 use num_traits::{Float, float};
 use crate::utils;
@@ -117,5 +117,123 @@ pub fn ex1() {
             .logarithmic_y(true)
             .logarithmic_x(true),
         "solutions/03/img/quadratic_eq_error.png"
+    );
+}
+
+// ------------------------------------------
+// Ex 2
+// ------------------------------------------
+
+type Real = f64;
+const ONE: Real = 1.0;
+const ZERO: Real = 0.0;
+const PI: Real = f64::consts::PI;
+
+fn runge(x: Real) -> Real {
+    ONE / (ONE + x * x)
+}
+
+fn cheb_at(k: i32, n: i32) -> Real {
+    let a = Real::from(-5);
+    let b = Real::from(5);
+    (b - a) / Real::from(2) * (Real::from(n - k) / Real::from(n) * PI).cos() + (b + a) / Real::from(2)
+}
+fn node_at(k: i32, n: i32) -> Real {
+    // Real::from(- 5.0) + Real::from(10.0) / Real::from(n) * Real::from(k)
+    cheb_at(k, n)
+}
+
+fn newton(x: Real, j: i32, n: i32) -> Real {
+    if j == 0 { ONE }
+    else {
+        (0..j).fold(ONE, |acc, i| acc * (x - node_at(i, n)))
+    }
+}
+
+const TICK_COUNT: i32 = 250;
+const MIN_X: f64 = -5.0;
+const MAX_X: f64 = 5.0;
+
+fn make_range() -> impl Iterator<Item = f64> {
+    let step_size = (MAX_X - MIN_X) / (TICK_COUNT as f64);
+
+    (0..=TICK_COUNT)
+        .map(move |n| MIN_X + step_size * n as f64)
+}
+
+
+fn make_pol_line(n: i32) -> Vec<(f64, f64)> {
+    let mut c = vec![ZERO; (n+1) as usize];
+
+    for i in 0..=n {
+        c[i as usize] = runge(node_at(i, n));
+    }
+    for k in 1..=n {
+        for i in (k..=n).rev() {
+            let iu = i as usize;
+            c[iu] = (c[iu] - c[iu - 1]) / (node_at(i, n) - node_at(i-k, n));
+        }
+    }
+
+    let pol = |x: Real| {
+        (0..=n)
+            .map(|i| c[i as usize] * newton(x, i, n))
+            .sum()
+    };
+
+    // Plotting
+
+    make_range()
+        .map(|x| (x, pol(Real::from(x))))
+        .collect::<Vec<(f64, f64)>>()
+
+}
+
+fn make_W_line(n: i32) -> Vec<(f64, f64)> {
+    let error = |x: Real| {
+        (0..=n).fold(ONE, |acc, i| acc * (x - node_at(i, n)))
+    };
+
+    make_range()
+        .map(|x| (x, error(x)))
+        .collect()
+}
+
+pub fn ex2() {
+    let pol12_line = make_pol_line(12);
+    let pol20_line = make_pol_line(20);
+
+    let pol12_w_line = make_W_line(12);
+    let pol20_w_line = make_W_line(20);
+
+    let runge_line = make_range()
+        .map(|x| (x, runge(Real::from(x))))
+        .collect::<Vec<(f64, f64)>>();
+
+    let error12_line: Vec<(f64, f64)> = pol12_line.iter()
+    .zip(runge_line.iter())
+    .map(|((x, p), (_, r))| (*x, (r - p).abs()))
+    .collect();
+
+    let error20_line: Vec<(f64, f64)> = pol20_line.iter()
+        .zip(runge_line.iter())
+        .map(|((x, p), (_, r))| (*x, (r - p).abs()))
+        .collect();
+
+    utils::plotting::line_graph(
+        vec!(
+            (pol12_line, "Polynomial n=12".to_owned()),
+            (pol20_line, "Polynomial n=20".to_owned()),
+            (pol12_w_line, "W n=12".to_owned()),
+            (pol20_w_line, "W n=20".to_owned()),
+            (error12_line, "abs err n=12".to_owned()),
+            (error20_line, "abs err n=20".to_owned()),
+            (runge_line, "Runge".to_owned()),
+        ),
+        PlotConfig::default()
+                .title(&format!("Polynomial of Runge function with error on [-5,5] and chebyshev"))
+            .x_label("x")
+            .y_label("y"),
+        "solutions/03/img/pol_error_w_ch.png"
     );
 }
