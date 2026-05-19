@@ -74,6 +74,15 @@ pub fn ex1() {
 
     let float_prec = (min_n..=max_n).map(|n| classic_solution::<f32>(a, b, 10.0.powi(-n)).unwrap().0);
     let double_prec = (min_n..=max_n).map(|n| classic_solution::<f64>(a.into(), b.into(), 10.0.powi(-n)).unwrap().0);
+
+    let double_2nd = (min_n..=max_n).map(|n| classic_solution::<f64>(a.into(), b.into(), 10.0.powi(-n)).unwrap().1);
+
+    let double_prec = double_prec.collect::<Vec<f64>>();
+    println!("double value 1st {:?}", &double_prec);
+    println!("double value 2nd {:?}", double_2nd.collect::<Vec<f64>>());
+
+    let double_prec = double_prec.into_iter();
+
     // let stable = (min_n..=max_n).map(|n| stable_solution::<f64>(1.0, 1.0, 10.0.powi(-n)).unwrap());
     let stable = 
         (min_n..=max_n)
@@ -101,7 +110,7 @@ pub fn ex1() {
         .map(|(x, prec)| (x as f64, prec as f64))
         .collect::<Vec<(f64, f64)>>();
 
-    println!("{:?}", line_double.iter().map(|(_, y)| *y).collect::<Vec<f64>>());
+    println!("double error {:?}", line_double.iter().map(|(_, y)| *y).collect::<Vec<f64>>());
 
     utils::plotting::line_graph(
         vec!(
@@ -160,7 +169,6 @@ fn make_range() -> impl Iterator<Item = f64> {
     (0..=TICK_COUNT)
         .map(move |n| MIN_X + step_size * n as f64)
 }
-
 
 fn make_pol_line(n: i32) -> Vec<(f64, f64)> {
     let mut c = vec![ZERO; (n+1) as usize];

@@ -1,6 +1,7 @@
 use crate::assignments::assignment1;
 use crate::assignments::assignment2;
 use crate::assignments::assignment3;
+use crate::assignments::assignment3_cms;
 mod assignments;
 mod utils;
 
@@ -14,7 +15,9 @@ fn main() {
     // assignment2::ex3();
 
     // assignment3::ex1();
-    assignment3::ex2();
+    // assignment3::ex2();
+
+    assignment3_cms::ex1();
 
     println!("done");
 }
