@@ -1,8 +1,8 @@
+use num_traits::{Float, NumCast};
 use std::cmp::max;
 use std::env::join_paths;
 use std::fmt::Debug;
 use std::time::{Duration, Instant};
-use num_traits::{Float, NumCast};
 
 use crate::utils::plotting;
 use crate::utils::plotting::PlotConfig;
@@ -14,7 +14,7 @@ pub fn ex4() {
     let mut data = [0.; MAX_ITERATIONS];
 
     for i in 0..MAX_ITERATIONS {
-        let n = 2+i;
+        let n = 2 + i;
 
         current = pi_iteration(current, n as i32);
         data[i] = current;
@@ -24,7 +24,7 @@ pub fn ex4() {
 
     let mut current = f64::sqrt(8.);
     for i in 0..MAX_ITERATIONS {
-        let n = 2+i;
+        let n = 2 + i;
 
         current = pi_iteration_kahan(current, n as i32);
         data[i] = current;
@@ -46,15 +46,14 @@ pub fn ex4() {
 
 fn pi_iteration(an: f64, n: i32) -> f64 {
     let p2n: f64 = 2.0.powi(n);
-    p2n * f64::sqrt(2. - 2.*f64::sqrt(1. - (an/p2n).powf(2.)))
+    p2n * f64::sqrt(2. - 2. * f64::sqrt(1. - (an / p2n).powf(2.)))
 }
 
 fn pi_iteration_kahan(an: f64, n: i32) -> f64 {
     let p2n: f64 = 2.0.powi(n);
-    let zn = 2.*(an/(p2n*2.)).powf(2.)/(1. + f64::sqrt(1. - (an/p2n).powf(2.)));
-    p2n * f64::sqrt(4.*zn)
+    let zn = 2. * (an / (p2n * 2.)).powf(2.) / (1. + f64::sqrt(1. - (an / p2n).powf(2.)));
+    p2n * f64::sqrt(4. * zn)
 }
-
 
 pub fn ex3() {
     let a = 1e30f32;
@@ -63,7 +62,7 @@ pub fn ex3() {
     println!("res = {}", res);
 
     let scale = 1e20f32;
-    let sum = (a/scale).powf(2.0) + (b/scale).powf(2.0);
+    let sum = (a / scale).powf(2.0) + (b / scale).powf(2.0);
     println!("sum = {}", sum);
     let sqrt = f32::sqrt(sum);
     println!("sqrt = {}", sqrt);
@@ -71,52 +70,51 @@ pub fn ex3() {
     println!("res = {}", res);
 }
 
-
 // Determine machine epsilon
 pub fn ex2() {
     let eps32 = machineepsilon::<f32>(0.001f32);
     let eps64 = machineepsilon::<f64>(0.001f64);
 
-    println!("single precision: {}  double precision: {}   (measured)", eps32, eps64);
-    println!("single precision: {}  double precision: {}   (rust def)", f32::EPSILON, f64::EPSILON);
+    println!(
+        "single precision: {}  double precision: {}   (measured)",
+        eps32, eps64
+    );
+    println!(
+        "single precision: {}  double precision: {}   (rust def)",
+        f32::EPSILON,
+        f64::EPSILON
+    );
 }
 
 fn machineepsilon<T: Float>(start: T) -> T {
     let mut small_end = T::zero();
     let mut big_end = start;
 
-    let mut last_eps  = T::zero();
+    let mut last_eps = T::zero();
     let mut current_eps = T::one();
 
     while last_eps != current_eps {
         last_eps = current_eps;
-        current_eps = (small_end + big_end)/T::from(2.0f64).unwrap();
+        current_eps = (small_end + big_end) / T::from(2.0f64).unwrap();
 
-        let test = (T::one()+current_eps) == T::one();
+        let test = (T::one() + current_eps) == T::one();
 
         if test {
             small_end = current_eps;
         } else {
             big_end = current_eps;
         }
-
-    };
+    }
 
     big_end
 }
-
 
 // Plot different kinds of floatingpoint errors
 pub fn ex1(path: &str) {
     let ks = [1e3, 1e6, 1e7, 1e8];
 
     // (double precision, reversed)
-    let configurations = vec!(
-        (false, false),
-        (false, true),
-        (true, false),
-        (true, true),
-    );
+    let configurations = vec![(false, false), (false, true), (true, false), (true, true)];
 
     let mut rel_error_lines = Vec::new();
     let mut duration_lines = Vec::new();
@@ -132,11 +130,30 @@ pub fn ex1(path: &str) {
             (e.map(|x| x as f64), d, a)
         };
 
-        let label = format!("{}, {}", if is_f64 {"f64"} else {"f32"}, if is_reversed {"reversed"} else {"forwards"});
+        let label = format!(
+            "{}, {}",
+            if is_f64 { "f64" } else { "f32" },
+            if is_reversed { "reversed" } else { "forwards" }
+        );
 
-        rel_error_lines.push((ksx.iter().cloned().zip(relative_error).collect::<Vec<(f64, f64)>>(), label.clone()));
-        duration_lines.push((ksx.iter().cloned().zip(duration.map(|d| d.as_millis() as f64)).collect::<Vec<(f64, f64)>>(), label.clone()));
-        abs_lines.push((ksx.iter().cloned().zip(absolute_error).collect(), label.clone()));
+        rel_error_lines.push((
+            ksx.iter()
+                .cloned()
+                .zip(relative_error)
+                .collect::<Vec<(f64, f64)>>(),
+            label.clone(),
+        ));
+        duration_lines.push((
+            ksx.iter()
+                .cloned()
+                .zip(duration.map(|d| d.as_millis() as f64))
+                .collect::<Vec<(f64, f64)>>(),
+            label.clone(),
+        ));
+        abs_lines.push((
+            ksx.iter().cloned().zip(absolute_error).collect(),
+            label.clone(),
+        ));
     }
 
     let rel_error_path = format!("{path}/Prec-relError.png");
@@ -146,22 +163,31 @@ pub fn ex1(path: &str) {
 
     plotting::line_graph(
         rel_error_lines,
-        PlotConfig::default().title("Relative error").x_label("Iterations").y_label("Error").logarithmic_y(true),
-        &rel_error_path
+        PlotConfig::default()
+            .title("Relative error")
+            .x_label("Iterations")
+            .y_label("Error")
+            .logarithmic_y(true),
+        &rel_error_path,
     );
 
     plotting::line_graph(
         duration_lines,
-        PlotConfig::default().title("Duration").x_label("Duration").y_label("Milliseconds"),
-        &duration_path
+        PlotConfig::default()
+            .title("Duration")
+            .x_label("Duration")
+            .y_label("Milliseconds"),
+        &duration_path,
     );
 
     plotting::line_graph(
         abs_lines,
-        PlotConfig::default().title("Values").x_label("Iterations").y_label("Value"),
-        &abs_path
+        PlotConfig::default()
+            .title("Values")
+            .x_label("Iterations")
+            .y_label("Value"),
+        &abs_path,
     );
-
 }
 
 fn sum_helper<T: Float + Debug>(reverse: bool) -> ([f64; 4], [Duration; 4], [f64; 4]) {
@@ -193,7 +219,7 @@ fn sum_helper<T: Float + Debug>(reverse: bool) -> ([f64; 4], [Duration; 4], [f64
 pub fn sum<T: Float>(list: &Vec<T>) -> T {
     let mut sum: T = T::zero();
     for &i in list {
-        sum = sum + T::one()/(i*i)
+        sum = sum + T::one() / (i * i)
     }
     sum
 }

@@ -1,11 +1,10 @@
+use ndarray::prelude::*;
+use plotters::coord::Shift;
+use plotters::coord::ranged1d::ValueFormatter;
 use plotters::prelude::*;
 use plotters::style::full_palette::{GREY, ORANGE, PURPLE};
 use std::ops::Range;
 use std::path::Path;
-use ndarray::prelude::*;
-use plotters::coord::ranged1d::ValueFormatter;
-use plotters::coord::Shift;
-
 
 pub struct PlotConfig {
     title: String,
@@ -14,7 +13,7 @@ pub struct PlotConfig {
     y_min_0: bool,
     logarithmic_x: bool,
     logarithmic_y: bool,
-    point_size: i64
+    point_size: i64,
 }
 
 impl PlotConfig {
@@ -26,7 +25,7 @@ impl PlotConfig {
             y_min_0: false,
             logarithmic_x: false,
             logarithmic_y: false,
-            point_size: 1
+            point_size: 1,
         }
     }
 
@@ -67,10 +66,12 @@ impl PlotConfig {
 }
 
 fn make_log(p: (f64, f64), log_x: bool, log_y: bool) -> (f64, f64) {
-    if p.0 == 0.0 || p.1 == 0.0 { return (p.0, p.1) }
+    if p.0 == 0.0 || p.1 == 0.0 {
+        return (p.0, p.1);
+    }
     (
         if log_x { p.0.log10() } else { p.0 },
-        if log_y { p.1.log10() } else { p.1 }
+        if log_y { p.1.log10() } else { p.1 },
     )
 }
 
@@ -82,26 +83,32 @@ pub fn line_graph(lines: Vec<(Vec<(f64, f64)>, String)>, config: PlotConfig, pat
     let root = BitMapBackend::new(path, (800, 600)).into_drawing_area();
     root.fill(&WHITE).unwrap();
 
-    let lines =
-        lines.into_iter()
-            .map(|(vec, s)| (
-                vec.into_iter().map(|p| make_log(p, config.logarithmic_x, config.logarithmic_y)).collect(),
-                s
-            ))
-            .collect::<Vec<(Vec<(f64, f64)>, String)>>();
+    let lines = lines
+        .into_iter()
+        .map(|(vec, s)| {
+            (
+                vec.into_iter()
+                    .map(|p| make_log(p, config.logarithmic_x, config.logarithmic_y))
+                    .collect(),
+                s,
+            )
+        })
+        .collect::<Vec<(Vec<(f64, f64)>, String)>>();
 
-    let flat_lines: Vec<_> = lines.iter().map(|e|e.0.clone()).flatten().collect();
+    let flat_lines: Vec<_> = lines.iter().map(|e| e.0.clone()).flatten().collect();
 
-    let max_x = flat_lines.iter().map(|e|e.0).reduce(f64::max).unwrap();
-    let min_x = flat_lines.iter().map(|e|e.0).reduce(f64::min).unwrap();
-    let mut max_y = flat_lines.iter().map(|e|e.1).reduce(f64::max).unwrap();
-    let mut min_y = flat_lines.iter().map(|e|e.1).reduce(f64::min).unwrap();
+    let max_x = flat_lines.iter().map(|e| e.0).reduce(f64::max).unwrap();
+    let min_x = flat_lines.iter().map(|e| e.0).reduce(f64::min).unwrap();
+    let mut max_y = flat_lines.iter().map(|e| e.1).reduce(f64::max).unwrap();
+    let mut min_y = flat_lines.iter().map(|e| e.1).reduce(f64::min).unwrap();
 
     min_y = if config.y_min_0 && config.logarithmic_y {
         f64::EPSILON.log10()
     } else if config.y_min_0 {
         f64::EPSILON
-    } else { min_y };
+    } else {
+        min_y
+    };
 
     if max_y < min_y {
         let tmp = max_y;
@@ -123,7 +130,15 @@ pub fn line_graph(lines: Vec<(Vec<(f64, f64)>, String)>, config: PlotConfig, pat
     macro_rules! build_and_draw {
         ($x:expr, $y:expr) => {{
             let mut c = chart.build_cartesian_2d($x, $y).unwrap();
-            draw_stuff(&mut c, lines, config.x_label.as_str(), config.y_label.as_str(), config.point_size, config.logarithmic_x, config.logarithmic_y)
+            draw_stuff(
+                &mut c,
+                lines,
+                config.x_label.as_str(),
+                config.y_label.as_str(),
+                config.point_size,
+                config.logarithmic_x,
+                config.logarithmic_y,
+            )
         }};
     }
 
@@ -172,7 +187,7 @@ fn draw_stuff<'a, DB, XT, YT>(
     if format_log_y {
         mesh.y_label_formatter(&|v| log_label(*v));
     }
- 
+
     mesh.draw().unwrap();
 
     for (i, (points, label)) in lines.into_iter().enumerate() {
