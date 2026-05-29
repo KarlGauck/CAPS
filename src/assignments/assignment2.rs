@@ -208,7 +208,7 @@ pub fn ex3() {
     };
 
     let precision = 1e-6;
-    let (r_l1, iterations) = fixed_point_iteration(precision, r_moon / 2.0, |r, _| r - f(r) / df(r));
+    let (r_l1, iterations) = fixed_point_iteration(precision, r_moon / 2.0, |r, _| r - f(*r) / df(*r));
 
     println!("L1 Lagrange point: {:.4e} m ({} iterations)", r_l1, iterations);
     println!("Distance from Moon: {:.4e} m", r_moon - r_l1);
