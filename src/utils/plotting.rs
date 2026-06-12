@@ -2,7 +2,9 @@ use ndarray::prelude::*;
 use plotters::coord::Shift;
 use plotters::coord::ranged1d::ValueFormatter;
 use plotters::prelude::*;
-use plotters::style::full_palette::{GREY, ORANGE, PURPLE};
+use plotters::style::full_palette::{
+    AMBER, BLACK, BLUE_200, DEEPPURPLE, GREY, LIGHTGREEN, ORANGE, PURPLE,
+};
 use std::ops::Range;
 use std::path::Path;
 
@@ -158,7 +160,9 @@ fn log_label(v: f64) -> String {
     format!("1e{}", v as i32)
 }
 
-const COLORS: &[RGBColor] = &[RED, BLUE, GREEN, MAGENTA, ORANGE, GREY, PURPLE];
+const COLORS: &[RGBColor] = &[
+    RED, BLUE, GREEN, MAGENTA, ORANGE, GREY, PURPLE, BLACK, AMBER, BLUE_200, DEEPPURPLE, LIGHTGREEN,
+];
 
 fn draw_stuff<'a, DB, XT, YT>(
     chart: &mut ChartContext<'a, DB, Cartesian2d<XT, YT>>,
