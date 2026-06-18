@@ -5,3 +5,4 @@ pub mod assignment3_cms;
 pub mod assignment4;
 pub mod assignment5;
 mod assignment6;
+pub mod render_test;
