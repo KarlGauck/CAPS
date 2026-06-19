@@ -143,7 +143,7 @@ pub fn ex1(path: &str) {
             sum_helper::<f64>(is_reversed)
         } else {
             let (e, d, a) = sum_helper::<f32>(is_reversed);
-            (e.map(|x| x as f64), d, a)
+            (e.map(|x| x), d, a)
         };
 
         let label = format!(

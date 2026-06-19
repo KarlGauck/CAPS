@@ -109,7 +109,7 @@ pub fn line_graph(lines: Vec<(Vec<(f64, f64)>, String)>, config: PlotConfig, pat
         })
         .collect::<Vec<(Vec<(f64, f64)>, String)>>();
 
-    let flat_lines: Vec<_> = lines.iter().map(|e| e.0.clone()).flatten().collect();
+    let flat_lines: Vec<_> = lines.iter().flat_map(|e| e.0.clone()).collect();
 
     let max_x = config
         .max_x
@@ -127,9 +127,7 @@ pub fn line_graph(lines: Vec<(Vec<(f64, f64)>, String)>, config: PlotConfig, pat
     };
 
     if max_y < min_y {
-        let tmp = max_y;
-        max_y = min_y;
-        min_y = tmp;
+        std::mem::swap(&mut max_y, &mut min_y);
     }
 
     let x_axis = min_x..max_x;
@@ -223,7 +221,7 @@ fn draw_stuff<'a, DB, XT, YT>(
         if config.is_scatter_plot {
             draw_series(
                 chart,
-                PointSeries::<_, _, Circle<_, _>, _>::new(points, config.point_size as u32, &color),
+                PointSeries::<_, _, Circle<_, _>, _>::new(points, config.point_size as u32, color),
                 &label,
                 color,
             );

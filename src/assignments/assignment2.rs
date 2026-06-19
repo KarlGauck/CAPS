@@ -64,7 +64,7 @@ fn calculate_orbit_basic_fixpoint(
         .map(|mean_anomaly| {
             fixed_point_iteration(
                 precision,
-                get_initial_eccentricity(&orbit, mean_anomaly),
+                get_initial_eccentricity(orbit, mean_anomaly),
                 |old_eccentric_anomaly, _iterations| {
                     // Default fixedpoint iteration
                     mean_anomaly + orbit.eccentricity * f64::sin(*old_eccentric_anomaly)
@@ -86,7 +86,7 @@ fn calculate_orbit_newton_raphson(
         .map(|mean_anomaly| {
             fixed_point_iteration(
                 precision,
-                get_initial_eccentricity(&orbit, mean_anomaly),
+                get_initial_eccentricity(orbit, mean_anomaly),
                 |old_eccentric_anomaly, _iterations| {
                     // Newton Raphson
                     let g = old_eccentric_anomaly

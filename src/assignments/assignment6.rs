@@ -87,10 +87,10 @@ pub fn ex2() {
         angular_velocity: 1.0,
     };
 
-    let initial_x = vec![0.21, 0.24, 0.26, 0.27, 0.4, 0.5, 0.6, 0.8];
+    let initial_x = [0.21, 0.24, 0.26, 0.27, 0.4, 0.5, 0.6, 0.8];
     let mut positions: Vec<(Vec<(f64, f64)>, String)> = vec![];
     let mut poincare_points = vec![];
-    for (_, x0) in initial_x.iter().enumerate() {
+    for x0 in initial_x.iter() {
         let ydot0 = system.initial_ydot(jacobi, *x0);
 
         let mut current = Vec4::new(*x0, 0.0, 0.0, ydot0);

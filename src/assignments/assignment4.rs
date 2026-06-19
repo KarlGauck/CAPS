@@ -88,11 +88,10 @@ fn trapez_convergence(
         let approx = trapez_n(f, a, b, n);
         let err = (approx - exact).abs();
         data.push((n as f64, err));
-        if let Some(p) = prev {
-            if (approx - p).abs() < eps {
+        if let Some(p) = prev
+            && (approx - p).abs() < eps {
                 break;
             }
-        }
         prev = Some(approx);
         n *= 2;
         if n > 1 << 26 {

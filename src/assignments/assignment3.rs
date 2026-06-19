@@ -51,18 +51,10 @@ fn midnight_numerator<T: Float>(a: T, b: T, c: T) -> Option<T> {
 fn final_stable_solution<T: Float + Debug>(a: T, b: T, c: T) -> Option<(T, T)> {
     if b > T::zero() {
         // num is 2nd root
-        if let Some(num) = midnight_numerator(a, -b, c) {
-            Some((-T::from(2.0).unwrap() * c / num, num))
-        } else {
-            None
-        }
+        midnight_numerator(a, -b, c).map(|num| (-T::from(2.0).unwrap() * c / num, num))
     } else {
         // num is 1st root
-        if let Some(num) = midnight_numerator(a, b, c) {
-            Some((num, T::from(2.0).unwrap() * c / num))
-        } else {
-            None
-        }
+        midnight_numerator(a, b, c).map(|num| (num, T::from(2.0).unwrap() * c / num))
     }
 }
 
@@ -114,19 +106,19 @@ pub fn ex1() {
         .map(|(a, &b)| (f512::from_f64(a as f64) - b).abs().to_f64());
 
     let line_double: Vec<(f64, f64)> = (min_n..=max_n)
-        .map(|n: i32| 10.0.powi(-n) as f64)
+        .map(|n: i32| 10.0.powi(-n))
         .zip(error_double)
         .collect();
     let line_single: Vec<(f64, f64)> = (min_n..=max_n)
-        .map(|n: i32| 10.0.powi(-n) as f64)
+        .map(|n: i32| 10.0.powi(-n))
         .zip(error_single)
         .collect();
     // let line_m: Vec<(f64, f64)> = (1..=max_n).map(|n: i32| 10.0.powi(-n) as f64).zip(error_m).collect();
 
     let prec_line_double = (min_n..=max_n)
-        .map(|n| 10.0.powi(-n) as f64)
+        .map(|n| 10.0.powi(-n))
         .map(|x: f64| (x, x.next_up() - x))
-        .map(|(x, prec)| (x as f64, prec as f64))
+        .map(|(x, prec)| (x, prec))
         .collect::<Vec<(f64, f64)>>();
 
     let prec_line_single = (min_n..=max_n)
@@ -262,9 +254,7 @@ pub fn ex2() {
             (runge_line, "Runge".to_owned()),
         ],
         PlotConfig::default()
-            .title(&format!(
-                "Polynomial of Runge function with error on [-5,5] and chebyshev"
-            ))
+            .title(&"Polynomial of Runge function with error on [-5,5] and chebyshev".to_string())
             .x_label("x")
             .y_label("y"),
         "solutions/03/img/pol_error_w_ch.png",
