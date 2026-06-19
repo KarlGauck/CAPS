@@ -129,10 +129,19 @@ pub fn ex2() {
     );
 
     for (max_steps, skips) in [(5e4 as usize, 1), (5e5 as usize, 10), (5e6 as usize, 500)] {
-        let processed_pos =
-            positions.iter()
-                .map(|(line, label)| (line.iter().take(max_steps).step_by(skips).cloned().collect::<Vec<_>>(), label.clone()))
-                .collect::<Vec<_>>();
+        let processed_pos = positions
+            .iter()
+            .map(|(line, label)| {
+                (
+                    line.iter()
+                        .take(max_steps)
+                        .step_by(skips)
+                        .cloned()
+                        .collect::<Vec<_>>(),
+                    label.clone(),
+                )
+            })
+            .collect::<Vec<_>>();
 
         plotting::line_graph(
             processed_pos,

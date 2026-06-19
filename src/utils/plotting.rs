@@ -113,7 +113,9 @@ pub fn line_graph(lines: Vec<(Vec<(f64, f64)>, String)>, config: PlotConfig, pat
 
     let flat_lines: Vec<_> = lines.iter().map(|e| e.0.clone()).flatten().collect();
 
-    let max_x = config.max_x.unwrap_or_else(|| flat_lines.iter().map(|e| e.0).reduce(f64::max).unwrap());
+    let max_x = config
+        .max_x
+        .unwrap_or_else(|| flat_lines.iter().map(|e| e.0).reduce(f64::max).unwrap());
     let min_x = flat_lines.iter().map(|e| e.0).reduce(f64::min).unwrap();
     let mut max_y = flat_lines.iter().map(|e| e.1).reduce(f64::max).unwrap();
     let mut min_y = flat_lines.iter().map(|e| e.1).reduce(f64::min).unwrap();

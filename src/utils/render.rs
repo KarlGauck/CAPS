@@ -94,12 +94,19 @@ pub fn start_render<R: RenderEnv2D + Resource>(r: R) {
         .add_plugins(DefaultPlugins)
         .insert_resource(r)
         .add_systems(Startup, setup::<R>)
-        .add_systems(FixedUpdate, |mut render: ResMut<R>, keyboard_input: Res<ButtonInput<KeyCode>>| {
-            let count = if keyboard_input.pressed(KeyCode::Space) {100} else {1};
-            for _ in 0..count {
-                render.physics_tick();
-            }
-        })
+        .add_systems(
+            FixedUpdate,
+            |mut render: ResMut<R>, keyboard_input: Res<ButtonInput<KeyCode>>| {
+                let count = if keyboard_input.pressed(KeyCode::Space) {
+                    100
+                } else {
+                    1
+                };
+                for _ in 0..count {
+                    render.physics_tick();
+                }
+            },
+        )
         .add_systems(Update, update_object_infos::<R>);
     bevy_app.run();
 }

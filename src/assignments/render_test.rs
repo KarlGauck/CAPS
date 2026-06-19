@@ -18,8 +18,8 @@ impl BounceScene {
         Self {
             circle_pos: Vec2::new(0.0, 100.0),
             hollow_pos: Vec2::new(0.0, -100.0),
-            circle_vel: 2.0,
-            hollow_vel: -3.0,
+            circle_vel: 200.0,
+            hollow_vel: -300.0,
             time: 0.0,
         }
     }
@@ -39,8 +39,6 @@ impl RenderEnv2D for BounceScene {
         if self.hollow_pos.x.abs() > 400.0 {
             self.hollow_vel = -self.hollow_vel;
         }
-
-        println!("")
     }
 
     fn render_infos(&self) -> Vec<RenderObject> {
