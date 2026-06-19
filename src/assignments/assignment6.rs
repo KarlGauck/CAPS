@@ -107,9 +107,7 @@ pub fn ex2() {
                 inner_poincare.push((current.x0, current.x2))
             }
 
-            if step % 1 == 0 {
-                line.push((current.x0, current.x1));
-            }
+            line.push((current.x0, current.x1));
         }
 
         poincare_points.push((inner_poincare, format!("initial x: {x0}")));

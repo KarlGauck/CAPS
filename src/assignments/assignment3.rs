@@ -118,7 +118,6 @@ pub fn ex1() {
     let prec_line_double = (min_n..=max_n)
         .map(|n| 10.0.powi(-n))
         .map(|x: f64| (x, x.next_up() - x))
-        .map(|(x, prec)| (x, prec))
         .collect::<Vec<(f64, f64)>>();
 
     let prec_line_single = (min_n..=max_n)
@@ -254,7 +253,7 @@ pub fn ex2() {
             (runge_line, "Runge".to_owned()),
         ],
         PlotConfig::default()
-            .title(&"Polynomial of Runge function with error on [-5,5] and chebyshev".to_string())
+            .title("Polynomial of Runge function with error on [-5,5] and chebyshev")
             .x_label("x")
             .y_label("y"),
         "solutions/03/img/pol_error_w_ch.png",

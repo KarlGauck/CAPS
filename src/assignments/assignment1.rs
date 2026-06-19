@@ -11,21 +11,21 @@ pub fn ex4() {
 
     let mut data = [0.; MAX_ITERATIONS];
 
-    for i in 0..MAX_ITERATIONS {
+    for (i, v) in data.iter_mut().enumerate() {
         let n = 2 + i;
 
         current = pi_iteration(current, n as i32);
-        data[i] = current;
+        *v = current;
     }
 
     let data0 = data;
 
     let mut current = f64::sqrt(8.);
-    for i in 0..MAX_ITERATIONS {
+    for (i, v) in data.iter_mut().enumerate() {
         let n = 2 + i;
 
         current = pi_iteration_kahan(current, n as i32);
-        data[i] = current;
+        *v = current;
     }
 
     plotting::line_graph(

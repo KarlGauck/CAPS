@@ -2,7 +2,7 @@ use crate::utils;
 use crate::utils::plotting::PlotConfig;
 use chrono;
 use chrono::{Datelike, NaiveDate};
-use std::{f64, usize};
+use std::f64;
 
 fn fixed_point_iteration<T, F>(precision: T, starting_value: T, process: F) -> (T, usize)
 where
@@ -56,7 +56,7 @@ fn get_initial_eccentricity(orbit: &Orbit, mean_anomaly: &f64) -> f64 {
 // Distribute a number of points equally over [0, 2pi] for the mean anomalies, then approximate the eccentric anomalies using fixedpoint method
 fn calculate_orbit_basic_fixpoint(
     orbit: &Orbit,
-    mean_anomalies: &Vec<f64>,
+    mean_anomalies: &[f64],
     precision: f64,
 ) -> (Vec<f64>, Vec<usize>) {
     let eccentric_anomalies: Vec<(f64, usize)> = mean_anomalies
@@ -78,7 +78,7 @@ fn calculate_orbit_basic_fixpoint(
 
 fn calculate_orbit_newton_raphson(
     orbit: &Orbit,
-    mean_anomalies: &Vec<f64>,
+    mean_anomalies: &[f64],
     precision: f64,
 ) -> (Vec<f64>, Vec<usize>) {
     let eccentric_anomalies: Vec<(f64, usize)> = mean_anomalies
@@ -212,7 +212,7 @@ pub fn ex1() {
 
     println!("Num points: {:?}", num_points);
 
-    let planets = vec![
+    let planets = [
         PlanetPositionJ2000 {
             semimajor_axis: EARTH_SEMIMAJOR_AXIS,
             eccentricity: 0.0167,
