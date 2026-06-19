@@ -4,11 +4,8 @@ use crate::assignments::assignment3;
 use crate::assignments::assignment3_cms;
 use crate::assignments::assignment4;
 use crate::assignments::assignment5;
-<<<<<<< HEAD
 use crate::assignments::assignment6;
-=======
 use crate::assignments::render_test;
->>>>>>> 248d315e12fb7791d2ed313df4ce8b3d1f99ca9c
 mod assignments;
 mod utils;
 
@@ -29,7 +26,7 @@ fn main() {
     // assignment5::ex2_2a();
     // assignment5::ex2_2b();
 
-    render_test::run();
+    assignment6::render_path();
 
     println!("done");
 }

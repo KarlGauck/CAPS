@@ -1,8 +1,12 @@
+use bevy::color::Color;
+use bevy::math::Vec2;
+use bevy::prelude::Resource;
 use num_traits::ToPrimitive;
 use crate::utils::vec4;
 use crate::utils::vec4::Vec4;
 use crate::utils::plotting;
 use crate::utils::plotting::PlotConfig;
+use crate::utils::render::{start_render, RenderEnv2D, RenderObject, Shape2D};
 
 struct RC3BSystem {
     mu1: f64,
@@ -108,4 +112,63 @@ pub fn ex2() {
         "solutions/06/img/paths.png"
     )
 
+}
+
+pub fn render_path() {
+    let mu2: f64 = 10.0f64.powi(-3);
+    let jacobi = 3.03;
+    let x0 = 0.4;
+
+    let mut system = RC3BSystem {
+        mu1: 1.0-mu2,
+        mu2,
+        angular_velocity: 1.0
+    };
+
+    let y0dot = system.initial_ydot(jacobi, x0);
+
+    let current = Vec4::new(x0, 0.0, 0.0, y0dot);
+
+    let renderer = RK4Renderer {
+        system,
+        current
+    };
+
+    start_render(renderer);
+}
+
+
+#[derive(Resource)]
+struct RK4Renderer {
+    system: RC3BSystem,
+    current: Vec4
+}
+
+impl RenderEnv2D for RK4Renderer {
+    fn physics_tick(&mut self) {
+        let dt = 1.0 / 60.0;
+        self.current = runge_kutta_step(self.current, dt, &self.system);
+    }
+
+    fn render_infos(&self) -> Vec<RenderObject> {
+        let render_scale = 300.0f32;
+
+        vec![
+            RenderObject {
+                pos: Vec2 {x: -0.5*render_scale, y: 0.0*render_scale},
+                shape: Shape2D::Circle(15.0),
+                color: Color::srgb(0.2, 0.0, 1.0),
+            },
+            RenderObject {
+                pos: Vec2 {x: 0.5*render_scale, y: 0.0*render_scale},
+                shape: Shape2D::Circle(10.0),
+                color: Color::srgb(0.2, 0.0, 1.0),
+            },
+            RenderObject {
+                pos: Vec2 {x: self.current.x0.to_f32().unwrap() * render_scale, y: self.current.x1.to_f32().unwrap() * render_scale},
+                shape: Shape2D::Circle(5.0),
+                color: Color::srgb(0.2, 0.6, 1.0),
+            },
+        ]
+    }
 }
