@@ -26,7 +26,8 @@ fn main() {
     // assignment5::ex2_2a();
     // assignment5::ex2_2b();
 
-    assignment6::render_path();
+    // assignment6::render_path();
+    assignment6::ex2();
 
     println!("done");
 }

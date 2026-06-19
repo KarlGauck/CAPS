@@ -18,7 +18,12 @@ impl ops::Add<Vec4> for Vec4 {
     type Output = Vec4;
 
     fn add(self, rhs: Vec4) -> Vec4 {
-        Vec4::new(self.x0 + rhs.x0, self.x1 + rhs.x1, self.x2 + rhs.x2, self.x3 + rhs.x3)
+        Vec4::new(
+            self.x0 + rhs.x0,
+            self.x1 + rhs.x1,
+            self.x2 + rhs.x2,
+            self.x3 + rhs.x3,
+        )
     }
 }
 
@@ -42,7 +47,12 @@ impl ops::Sub<Vec4> for Vec4 {
     type Output = Vec4;
 
     fn sub(self, rhs: Vec4) -> Vec4 {
-        Vec4::new(self.x0 - rhs.x0, self.x1 - rhs.x1, self.x2 - rhs.x2, self.x3 - rhs.x3)
+        Vec4::new(
+            self.x0 - rhs.x0,
+            self.x1 - rhs.x1,
+            self.x2 - rhs.x2,
+            self.x3 - rhs.x3,
+        )
     }
 }
 

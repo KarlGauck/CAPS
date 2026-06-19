@@ -10,3 +10,4 @@ ndarray = "0.15"
 chrono = "0.4.44"
 hyperprec = "0.3.0"
 bevy = "0.18.0"
+clap = { version = "4.6.1", features = ["derive"] }

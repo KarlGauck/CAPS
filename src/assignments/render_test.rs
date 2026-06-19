@@ -1,6 +1,6 @@
+use bevy::color::Color;
 use bevy::ecs::resource::Resource;
 use bevy::math::Vec2;
-use bevy::color::Color;
 
 use crate::utils::render::*;
 
@@ -18,8 +18,8 @@ impl BounceScene {
         Self {
             circle_pos: Vec2::new(0.0, 100.0),
             hollow_pos: Vec2::new(0.0, -100.0),
-            circle_vel: 200.0,
-            hollow_vel: -300.0,
+            circle_vel: 2.0,
+            hollow_vel: -3.0,
             time: 0.0,
         }
     }
@@ -33,12 +33,14 @@ impl RenderEnv2D for BounceScene {
         self.circle_pos.x += self.circle_vel * dt;
         self.hollow_pos.x += self.hollow_vel * dt;
 
-        if self.circle_pos.x.abs() > 500.0 {
+        if self.circle_pos.x.abs() > 400.0 {
             self.circle_vel = -self.circle_vel;
         }
-        if self.hollow_pos.x.abs() > 500.0 {
+        if self.hollow_pos.x.abs() > 400.0 {
             self.hollow_vel = -self.hollow_vel;
         }
+
+        println!("")
     }
 
     fn render_infos(&self) -> Vec<RenderObject> {

@@ -1,10 +1,12 @@
 use ndarray::prelude::*;
 use plotters::coord::Shift;
 use plotters::coord::ranged1d::ValueFormatter;
+use plotters::element::{CoordMapper, Drawable, PointCollection};
 use plotters::prelude::*;
 use plotters::style::full_palette::{
     AMBER, BLACK, BLUE_200, DEEPPURPLE, GREY, LIGHTGREEN, ORANGE, PURPLE,
 };
+use std::borrow::Borrow;
 use std::ops::Range;
 use std::path::Path;
 
@@ -16,6 +18,8 @@ pub struct PlotConfig {
     logarithmic_x: bool,
     logarithmic_y: bool,
     point_size: i64,
+    is_scatter_plot: bool,
+    max_x: Option<f64>,
 }
 
 impl PlotConfig {
@@ -28,6 +32,8 @@ impl PlotConfig {
             logarithmic_x: false,
             logarithmic_y: false,
             point_size: 1,
+            is_scatter_plot: false,
+            max_x: None,
         }
     }
 
@@ -65,6 +71,14 @@ impl PlotConfig {
         self.y_min_0 = y_min_0;
         self
     }
+    pub fn scatter_plot(mut self, is_scatter_plot: bool) -> Self {
+        self.is_scatter_plot = is_scatter_plot;
+        self
+    }
+    pub fn max_x(mut self, max_x: f64) -> Self {
+        self.max_x = Some(max_x);
+        self
+    }
 }
 
 fn make_log(p: (f64, f64), log_x: bool, log_y: bool) -> (f64, f64) {
@@ -99,7 +113,7 @@ pub fn line_graph(lines: Vec<(Vec<(f64, f64)>, String)>, config: PlotConfig, pat
 
     let flat_lines: Vec<_> = lines.iter().map(|e| e.0.clone()).flatten().collect();
 
-    let max_x = flat_lines.iter().map(|e| e.0).reduce(f64::max).unwrap();
+    let max_x = config.max_x.unwrap_or_else(|| flat_lines.iter().map(|e| e.0).reduce(f64::max).unwrap());
     let min_x = flat_lines.iter().map(|e| e.0).reduce(f64::min).unwrap();
     let mut max_y = flat_lines.iter().map(|e| e.1).reduce(f64::max).unwrap();
     let mut min_y = flat_lines.iter().map(|e| e.1).reduce(f64::min).unwrap();
@@ -127,20 +141,12 @@ pub fn line_graph(lines: Vec<(Vec<(f64, f64)>, String)>, config: PlotConfig, pat
         .x_label_area_size(40)
         .y_label_area_size(60)
         .margin(20)
-        .caption(config.title, ("sans-serif", 25).into_font());
+        .caption(&config.title, ("sans-serif", 25).into_font());
 
     macro_rules! build_and_draw {
         ($x:expr, $y:expr) => {{
             let mut c = chart.build_cartesian_2d($x, $y).unwrap();
-            draw_stuff(
-                &mut c,
-                lines,
-                config.x_label.as_str(),
-                config.y_label.as_str(),
-                config.point_size,
-                config.logarithmic_x,
-                config.logarithmic_y,
-            )
+            draw_stuff(&mut c, lines, config)
         }};
     }
 
@@ -167,11 +173,7 @@ const COLORS: &[RGBColor] = &[
 fn draw_stuff<'a, DB, XT, YT>(
     chart: &mut ChartContext<'a, DB, Cartesian2d<XT, YT>>,
     lines: Vec<(Vec<(f64, f64)>, String)>,
-    x_label: &str,
-    y_label: &str,
-    point_size: i64,
-    format_log_x: bool,
-    format_log_y: bool,
+    config: PlotConfig,
 ) where
     DB: DrawingBackend + 'a,
     XT: Ranged<ValueType = f64> + ValueFormatter<f64>,
@@ -179,16 +181,16 @@ fn draw_stuff<'a, DB, XT, YT>(
 {
     let mut mesh = chart.configure_mesh();
     mesh
-        .x_desc(x_label)
-        .y_desc(y_label)
+        .x_desc(config.x_label)
+        .y_desc(config.y_label)
         // .x_labels(10)
         // .y_labels(10)
         ;
 
-    if format_log_x {
+    if config.logarithmic_x {
         mesh.x_label_formatter(&|v| log_label(*v));
     }
-    if format_log_y {
+    if config.logarithmic_y {
         mesh.y_label_formatter(&|v| log_label(*v));
     }
 
@@ -196,11 +198,43 @@ fn draw_stuff<'a, DB, XT, YT>(
 
     for (i, (points, label)) in lines.into_iter().enumerate() {
         let color = COLORS[i % COLORS.len()];
-        chart
-            .draw_series(LineSeries::new(points, &color).point_size(point_size as u32))
-            .unwrap()
-            .label(label)
-            .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], color));
+
+        fn draw_series<DB, CT, B, E, R, S>(
+            chart: &mut ChartContext<DB, CT>,
+            series: S,
+            label: &str,
+            legend_color: RGBColor,
+        ) where
+            B: CoordMapper,
+            for<'b> &'b E: PointCollection<'b, CT::From, B>,
+            E: Drawable<DB, B>,
+            R: Borrow<E>,
+            S: IntoIterator<Item = R>,
+            DB: DrawingBackend,
+            CT: CoordTranslate,
+        {
+            chart
+                .draw_series(series)
+                .unwrap()
+                .label(label)
+                .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], legend_color));
+        }
+
+        if config.is_scatter_plot {
+            draw_series(
+                chart,
+                PointSeries::<_, _, Circle<_, _>, _>::new(points, config.point_size as u32, &color),
+                &label,
+                color,
+            );
+        } else {
+            draw_series(
+                chart,
+                LineSeries::new(points, &color).point_size(config.point_size as u32),
+                &label,
+                color,
+            );
+        }
     }
 
     chart
