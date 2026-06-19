@@ -1,6 +1,4 @@
 use num_traits::{Float, NumCast};
-use std::cmp::max;
-use std::env::join_paths;
 use std::fmt::Debug;
 use std::time::{Duration, Instant};
 
@@ -30,18 +28,36 @@ pub fn ex4() {
         data[i] = current;
     }
 
-    // plotting::line_graph(
-    //     vec!(
-    //         ((0..MAX_ITERATIONS).map(|x| x as f64).zip(data.map(|x| f64::abs(x - std::f64::consts::PI))).collect(), "a".to_string()),
-    //         ((0..MAX_ITERATIONS).map(|x| x as f64).zip(data0.map(|x| f64::abs(x - std::f64::consts::PI))).collect(), "b".to_string()),
-    //         ((0..MAX_ITERATIONS).map(|x| x as f64).zip((0..MAX_ITERATIONS).map(|x| f64::EPSILON)).collect(), "c".to_string())
-    //     ),
-    //     true,
-    //     "PI Approximation Error",
-    //     "iterations",
-    //     "error",
-    //     "pi_error.png"
-    // )
+    plotting::line_graph(
+        vec![
+            (
+                (0..MAX_ITERATIONS)
+                    .map(|x| x as f64)
+                    .zip(data.map(|x| f64::abs(x - std::f64::consts::PI)))
+                    .collect(),
+                "a".to_string(),
+            ),
+            (
+                (0..MAX_ITERATIONS)
+                    .map(|x| x as f64)
+                    .zip(data0.map(|x| f64::abs(x - std::f64::consts::PI)))
+                    .collect(),
+                "b".to_string(),
+            ),
+            (
+                (0..MAX_ITERATIONS)
+                    .map(|x| x as f64)
+                    .zip((0..MAX_ITERATIONS).map(|_| f64::EPSILON))
+                    .collect(),
+                "c".to_string(),
+            ),
+        ],
+        PlotConfig::default()
+            .title("PI Approximation Error")
+            .x_label("iterations")
+            .y_label("error"),
+        "solutions/01/img/pi_error_new.png",
+    )
 }
 
 fn pi_iteration(an: f64, n: i32) -> f64 {

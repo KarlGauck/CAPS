@@ -1,8 +1,8 @@
 use crate::utils;
 use crate::utils::plotting::PlotConfig;
-use core::{error, f64};
+use core::f64;
 use hyperprec::f512;
-use num_traits::{Float, float};
+use num_traits::Float;
 use std::fmt::Debug;
 
 // 1.a
@@ -19,14 +19,14 @@ fn classic_solution<T: Float + Debug>(a: T, b: T, c: T) -> Option<(T, T)> {
 }
 
 // Vieta
-fn stable_solution<T: Float + Debug>(a: T, b: T, c: T) -> Option<T> {
-    let sqrt_arg = b.powi(2) - T::from(4.0).unwrap() * a * c;
-    if sqrt_arg < T::zero() {
-        None
-    } else {
-        Some(T::from(-2.0).unwrap() * c / (b + sqrt_arg.sqrt()))
-    }
-}
+// fn stable_solution<T: Float + Debug>(a: T, b: T, c: T) -> Option<T> {
+//     let sqrt_arg = b.powi(2) - T::from(4.0).unwrap() * a * c;
+//     if sqrt_arg < T::zero() {
+//         None
+//     } else {
+//         Some(T::from(-2.0).unwrap() * c / (b + sqrt_arg.sqrt()))
+//     }
+// }
 fn other_stable_solution(a: f512, b: f512, c: f512) -> Option<f512> {
     let sqrt_arg = b.pow(f512::from_f64(2.0)) - f512::from(4.0) * a * c;
     if sqrt_arg < f512::ZERO {
@@ -47,6 +47,7 @@ fn midnight_numerator<T: Float>(a: T, b: T, c: T) -> Option<T> {
         Some(-b + sqrt_arg.sqrt())
     }
 }
+#[allow(unused)]
 fn final_stable_solution<T: Float + Debug>(a: T, b: T, c: T) -> Option<(T, T)> {
     if b > T::zero() {
         // num is 2nd root
@@ -124,7 +125,7 @@ pub fn ex1() {
 
     let prec_line_double = (min_n..=max_n)
         .map(|n| 10.0.powi(-n) as f64)
-        .map(|x| (x, x.next_up() - x))
+        .map(|x: f64| (x, x.next_up() - x))
         .map(|(x, prec)| (x as f64, prec as f64))
         .collect::<Vec<(f64, f64)>>();
 
@@ -220,6 +221,7 @@ fn make_pol_line(n: i32) -> Vec<(f64, f64)> {
         .collect::<Vec<(f64, f64)>>()
 }
 
+#[allow(non_snake_case)]
 fn make_W_line(n: i32) -> Vec<(f64, f64)> {
     let error = |x: Real| (0..=n).fold(ONE, |acc, i| acc * (x - node_at(i, n)));
 

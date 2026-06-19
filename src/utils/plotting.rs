@@ -1,5 +1,3 @@
-use ndarray::prelude::*;
-use plotters::coord::Shift;
 use plotters::coord::ranged1d::ValueFormatter;
 use plotters::element::{CoordMapper, Drawable, PointCollection};
 use plotters::prelude::*;
@@ -7,7 +5,6 @@ use plotters::style::full_palette::{
     AMBER, BLACK, BLUE_200, DEEPPURPLE, GREY, LIGHTGREEN, ORANGE, PURPLE,
 };
 use std::borrow::Borrow;
-use std::ops::Range;
 use std::path::Path;
 
 pub struct PlotConfig {
@@ -67,6 +64,7 @@ impl PlotConfig {
         self
     }
 
+    #[allow(unused)]
     pub fn y_min_0(mut self, y_min_0: bool) -> Self {
         self.y_min_0 = y_min_0;
         self

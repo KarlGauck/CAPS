@@ -1,7 +1,6 @@
 use crate::utils::plotting;
 use crate::utils::plotting::PlotConfig;
 use crate::utils::render::{RenderEnv2D, RenderObject, Shape2D, start_render};
-use crate::utils::vec4;
 use crate::utils::vec4::Vec4;
 use bevy::color::Color;
 use bevy::math::Vec2;

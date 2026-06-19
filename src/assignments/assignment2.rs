@@ -1,12 +1,8 @@
 use crate::utils;
 use crate::utils::plotting::PlotConfig;
 use chrono;
-use chrono::{DateTime, Datelike, NaiveDate};
+use chrono::{Datelike, NaiveDate};
 use std::{f64, usize};
-
-fn mean_anomaly(time: f64, phase: f64, period: f64) -> f64 {
-    2. * std::f64::consts::PI * (time - phase) / period
-}
 
 fn fixed_point_iteration<T, F>(precision: T, starting_value: T, process: F) -> (T, usize)
 where
@@ -14,7 +10,7 @@ where
     T: num_traits::Signed + Clone + PartialOrd,
 {
     let mut accumulator = starting_value;
-    let mut error: T = T::zero();
+    let mut error;
     let mut iteration = 0;
     loop {
         let next_value = process(&accumulator, iteration);
@@ -50,7 +46,7 @@ fn calculate_starting_mean_anomalies(points_on_orbit: usize) -> Vec<f64> {
 
 fn get_initial_eccentricity(orbit: &Orbit, mean_anomaly: &f64) -> f64 {
     let ecc_threshold = 0.8;
-    if (orbit.eccentricity < ecc_threshold) {
+    if orbit.eccentricity < ecc_threshold {
         *mean_anomaly
     } else {
         f64::consts::PI
@@ -141,7 +137,6 @@ fn calculate_orbit_positions(orbit: &Orbit, eccentric_anomalies: Vec<f64>) -> Ve
 }
 
 const EARTH_SEMIMAJOR_AXIS: f64 = 1.0;
-const EARTH_PERIOD: f64 = 1.0;
 
 fn orbital_period(semimajor_axis: f64) -> f64 {
     semimajor_axis.sqrt().powf(3.0)

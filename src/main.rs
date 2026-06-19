@@ -61,8 +61,9 @@ enum A3Ex {
 }
 #[derive(clap::ValueEnum, Clone)]
 enum A5Ex {
-    Ex2a,
-    Ex2b,
+    Ex2_1,
+    Ex2_2a,
+    Ex2_2b,
 }
 #[derive(clap::ValueEnum, Clone)]
 enum A6Ex {
@@ -91,8 +92,9 @@ fn main() {
         Commands::A3Cms => assignment3_cms::ex1(),
         Commands::A4 => assignment4::ex2(),
         Commands::A5 { ex } => match ex {
-            A5Ex::Ex2a => assignment5::ex2_2a(),
-            A5Ex::Ex2b => assignment5::ex2_2b(),
+            A5Ex::Ex2_1 => assignment5::ex21(),
+            A5Ex::Ex2_2a => assignment5::ex2_2a(),
+            A5Ex::Ex2_2b => assignment5::ex2_2b(),
         },
         Commands::A6 { ex } => match ex {
             A6Ex::RenderPath => assignment6::render_path(),
