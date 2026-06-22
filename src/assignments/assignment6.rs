@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use crate::utils::plotting;
 use crate::utils::plotting::PlotConfig;
 use crate::utils::render::{RenderEnv2D, RenderObject, Shape2D, start_render};
@@ -5,7 +7,6 @@ use crate::utils::vec4::Vec4;
 use bevy::color::Color;
 use bevy::math::Vec2;
 use bevy::prelude::Resource;
-use num_traits::ToPrimitive;
 
 struct RC3BSystem {
     mu1: f64,
@@ -154,11 +155,12 @@ pub fn ex2() {
 
 pub fn render_path() {
     let mu2: f64 = 1.0e-3;
-    let jacobi = 3.03;
+    // let jacobi = 3.03;
+    let jacobi = 4.0;
 
     // ==========================================
     // Adjust this value for the initial value
-    let x0 = 0.4;
+    let x0 = 0.5;
     // ==========================================
 
     let mut system = RC3BSystem {
@@ -171,7 +173,7 @@ pub fn render_path() {
 
     let current = Vec4::new(x0, 0.0, 0.0, y0dot);
 
-    let renderer = RK4Renderer { system, current };
+    let renderer = RK4Renderer { system, current, time: 0.0f32 };
 
     start_render(renderer);
 }
@@ -180,41 +182,48 @@ pub fn render_path() {
 struct RK4Renderer {
     system: RC3BSystem,
     current: Vec4,
+    time: f32,
 }
 
 impl RenderEnv2D for RK4Renderer {
     fn physics_tick(&mut self) {
-        let dt = 1.0 / 60.0;
+        let dt = 1.0 / 64.0;
         self.current = runge_kutta_step(self.current, dt, &self.system);
+
+        self.time += dt as f32;
     }
 
     fn render_infos(&self) -> Vec<RenderObject> {
         let render_scale = 300.0f32;
+        let time_scale = 0.1f32;
+        let rotation = Vec2::from_angle(self.time * 2f32 * PI * time_scale);
+
+        let rotated = rotation.rotate(Vec2::new(
+            self.current.x0 as f32 * render_scale,
+            self.current.x1 as f32 * render_scale,
+        ));
 
         vec![
             RenderObject {
-                pos: Vec2 {
+                pos: rotation.rotate(Vec2 {
                     x: -0.5 * render_scale,
                     y: 0.0 * render_scale,
-                },
+                }),
                 shape: Shape2D::Circle(15.0),
                 color: Color::srgb(0.2, 0.0, 1.0),
             },
             RenderObject {
-                pos: Vec2 {
+                pos: rotation.rotate(Vec2 {
                     x: 0.5 * render_scale,
                     y: 0.0 * render_scale,
-                },
+                }),
                 shape: Shape2D::Circle(10.0),
                 color: Color::srgb(0.2, 0.0, 1.0),
             },
             RenderObject {
-                pos: Vec2 {
-                    x: self.current.x0.to_f32().unwrap() * render_scale,
-                    y: self.current.x1.to_f32().unwrap() * render_scale,
-                },
+                pos: rotated,
                 shape: Shape2D::Circle(5.0),
-                color: Color::srgb(0.2, 0.6, 1.0),
+                color: Color::srgb(0.8, 0.1, 0.3),
             },
         ]
     }
