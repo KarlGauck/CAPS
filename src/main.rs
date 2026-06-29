@@ -39,6 +39,10 @@ enum Commands {
         #[arg(value_enum)]
         ex: A6Ex,
     },
+    A8 {
+        #[arg(value_enum)]
+        ex: A8Ex,
+    },
     RenderTest,
 }
 
@@ -71,6 +75,11 @@ enum A6Ex {
     Ex2,
 }
 
+#[derive(clap::ValueEnum, Clone)]
+enum A8Ex {
+    Ex1,
+}
+
 fn main() {
     let cli = Cli::parse();
 
@@ -100,6 +109,9 @@ fn main() {
             A6Ex::RenderPath => assignment6::render_path(),
             A6Ex::Ex2 => assignment6::ex2(),
         },
+        Commands::A8 { ex } => match ex {
+            A8Ex::Ex1 => assignment8::ex1(),
+        }
         Commands::RenderTest => render_test::run(),
     }
 
