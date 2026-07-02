@@ -78,6 +78,7 @@ enum A6Ex {
 #[derive(clap::ValueEnum, Clone)]
 enum A8Ex {
     Ex1,
+    Render,
 }
 
 fn main() {
@@ -111,6 +112,7 @@ fn main() {
         },
         Commands::A8 { ex } => match ex {
             A8Ex::Ex1 => assignment8::ex1(),
+            A8Ex::Render => assignment8::render(),
         }
         Commands::RenderTest => render_test::run(),
     }

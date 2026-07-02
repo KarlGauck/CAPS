@@ -1,5 +1,8 @@
+use bevy::ecs::resource::Resource;
+
 use crate::utils::plotting;
 use crate::utils::plotting::PlotConfig;
+use crate::utils::render_fluid_1d::{RenderEnv1D, start_render_1d};
 
 const GRID_SIZE: usize = 400;
 const INTERVAL: (f64, f64) = (-1.0, 1.0);
@@ -124,4 +127,33 @@ pub fn ex1() {
             .y_label("Velocity"),
         "solutions/08/img/velocities_stable.png"
     )
+}
+
+#[derive(Resource)]
+struct FluidSim {
+    grid: Vec<f64>,
+    alpha: f64,
+    dt: f64,
+}
+
+impl FluidSim {
+    fn new() -> Self {
+        let alpha = 1.0;
+        let sigma = 0.8;
+        let dt = sigma * dx() / alpha;
+        Self { grid: initial_velocities(), alpha, dt }
+    }
+}
+
+impl RenderEnv1D for FluidSim {
+    fn velocities(&self) -> Vec<f32> {
+        self.grid.iter().map(|&v| v as f32).collect()
+    }
+    fn tick(&mut self) {
+        self.grid = solve_lax_wendroff(self.alpha, self.dt, self.grid.clone());
+    }
+}
+
+pub fn render() {
+    start_render_1d(FluidSim::new());
 }
