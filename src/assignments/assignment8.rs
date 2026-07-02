@@ -189,15 +189,22 @@ pub fn ex1() {
     )
 }
 
+pub enum Solver {
+    FTCS,
+    Upwind,
+    LaxWendroff,
+}
+
 #[derive(Resource)]
 struct FluidSim {
     grid: Vec<f64>,
     alpha: f64,
     dt: f64,
+    solver: Solver,
 }
 
 impl FluidSim {
-    fn new() -> Self {
+    fn new(solver: Solver) -> Self {
         let alpha = 1.0;
         let sigma = 0.8;
         let dt = sigma * dx() / alpha;
@@ -205,6 +212,7 @@ impl FluidSim {
             grid: initial_velocities(),
             alpha,
             dt,
+            solver,
         }
     }
 }
@@ -214,10 +222,14 @@ impl RenderEnv1D for FluidSim {
         self.grid.iter().map(|&v| v as f32).collect()
     }
     fn tick(&mut self) {
-        self.grid = solve_lax_wendroff(self.alpha, self.dt, self.grid.clone());
+        self.grid = match self.solver {
+            Solver::FTCS => solve_ftcs(self.alpha, self.dt, self.grid.clone()),
+            Solver::Upwind => solve_upwind(self.alpha, self.dt, self.grid.clone()),
+            Solver::LaxWendroff => solve_lax_wendroff(self.alpha, self.dt, self.grid.clone()),
+        }
     }
 }
 
-pub fn render() {
-    start_render_1d(FluidSim::new());
+pub fn render(solver: Solver) {
+    start_render_1d(FluidSim::new(solver));
 }
