@@ -149,6 +149,14 @@ pub fn ex1() {
                 .collect::<Vec<(f64, f64)>>(),
             "Lax Wendroff".to_string(),
         ),
+        (
+            interval
+                .clone()
+                .into_iter()
+                .zip(initial_velocities())
+                .collect::<Vec<(_, _)>>(),
+            "Analytical".to_owned(),
+        ),
     ];
 
     plotting::line_graph(
@@ -176,6 +184,14 @@ pub fn ex1() {
                 .zip(grids[2].clone())
                 .collect::<Vec<(f64, f64)>>(),
             "Lax Wendroff".to_string(),
+        ),
+        (
+            interval
+                .clone()
+                .into_iter()
+                .zip(initial_velocities())
+                .collect::<Vec<(_, _)>>(),
+            "Analytical".to_owned(),
         ),
     ];
 

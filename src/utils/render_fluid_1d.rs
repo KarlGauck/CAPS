@@ -1,3 +1,4 @@
+use bevy::prelude::*;
 use bevy::{
     DefaultPlugins,
     app::{App, FixedUpdate, PluginGroup, Startup, Update},
@@ -15,32 +16,17 @@ use bevy::{
     transform::components::Transform,
     window::{Window, WindowPlugin},
 };
-// Pulled in for the UI dropdown (Node, Button, Interaction, Text*, Visibility,
-// Display, Val, UiRect, flex enums, Changed, etc). Explicit imports above still
-// take precedence, this just fills in the bevy_ui / misc pieces we need.
-use bevy::prelude::*;
 
-// ---------------------------------------------------------------------------
-// Public interface
-// ---------------------------------------------------------------------------
-
-/// The only thing the simulation needs to provide.
 pub trait RenderEnv1D: Resource {
-    /// Velocity u[i] for each grid cell, left→right.
     fn velocities(&self) -> Vec<f32>;
     fn tick(&mut self);
 }
-
-// ---------------------------------------------------------------------------
-// Derived quantities
-// ---------------------------------------------------------------------------
 
 struct FluidFields {
     velocity: Vec<f32>,
     pressure: Vec<f32>,
     density: Vec<f32>,
     divergence: Vec<f32>,
-    flux: Vec<f32>,
 }
 
 impl FluidFields {
@@ -52,56 +38,37 @@ impl FluidFields {
                 pressure: vec![],
                 density: vec![],
                 divergence: vec![],
-                flux: vec![],
             };
         }
         let dx = 1.0_f32;
 
-        // Divergence: du/dx via central differences (forward/backward at edges)
         let divergence: Vec<f32> = (0..n)
             .map(|i| {
-                let u_r = if i + 1 < n { u[i + 1] } else { u[i] };
-                let u_l = if i > 0 { u[i - 1] } else { u[i] };
-                let denom = if i == 0 || i == n - 1 { dx } else { 2.0 * dx };
-                (u_r - u_l) / denom
+                let u_r = u[(i + 1) % n];
+                let u_l = u[(i + n - 1) % n];
+                (u_r - u_l) / (2.0 * dx)
             })
             .collect();
 
-        // Pressure: -ρ ∇·u  (incompressible, ρ=1).  We integrate from the left
-        // so the mean is approximately zero.
         let mut pressure: Vec<f32> = divergence.iter().map(|d| -d).collect();
         let mean_p: f32 = pressure.iter().sum::<f32>() / n as f32;
         pressure.iter_mut().for_each(|p| *p -= mean_p);
 
-        // Density: simple passive scalar advected by u (Euler step, dt=1, ρ₀=1).
-        // ρ_new[i] = ρ[i] - dt * u[i] * dρ/dx   with ρ initialised to 1.
-        // Since we don't carry state between frames we instead derive a
-        // quasi-density from the running integral of -divergence, which gives
-        // a coherent spatial pattern.
-        let mut density = vec![1.0_f32; n];
-        let mut acc = 0.0_f32;
-        for i in 0..n {
-            acc -= divergence[i] * dx;
-            density[i] = 1.0 + acc * 0.1;
-        }
-
-        // Flux: J[i] = u[i] * ρ[i]
-        let flux: Vec<f32> = u
-            .iter()
-            .zip(density.iter())
-            .map(|(ui, ri)| ui * ri)
-            .collect();
+        // from bernoulli's equation
+        let density =
+            pressure.iter().zip(u.iter())
+                .zip(pressure.iter().zip(u.iter()).skip(1))
+                .map(|((p1, v1), (p2, v2))| 2.0 * (p2 - p1) / (v1*v1 - v2*v2))
+                .collect::<Vec<_>>();
 
         Self {
             velocity: u,
             pressure,
             density,
             divergence,
-            flux,
         }
     }
 
-    /// Normalise a field to [-1, 1] for display.
     fn normalise(v: &[f32]) -> Vec<f32> {
         let max = v.iter().cloned().fold(0.0_f32, |a, x| a.max(x.abs()));
         if max < 1e-9 {
@@ -111,12 +78,6 @@ impl FluidFields {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Mesh helpers
-// ---------------------------------------------------------------------------
-
-/// Build a filled area chart mesh.
-/// `values` ∈ [-1, 1] mapped to y ∈ [0, height] above `baseline_y`.
 fn build_area_mesh(values: &[f32], baseline_y: f32, height: f32, total_w: f32) -> Mesh {
     let n = values.len();
     if n < 2 {
@@ -154,7 +115,6 @@ fn build_area_mesh(values: &[f32], baseline_y: f32, height: f32, total_w: f32) -
     mesh
 }
 
-/// Build a polyline mesh (thin strip).
 fn build_line_mesh(
     values: &[f32],
     baseline_y: f32,
@@ -212,7 +172,6 @@ fn build_line_mesh(
     mesh
 }
 
-/// Dashed horizontal line at y.
 fn build_dash_mesh(y: f32, total_w: f32, dash: f32, gap: f32) -> Mesh {
     let h = 1.5_f32;
     let mut verts: Vec<[f32; 3]> = vec![];
@@ -255,15 +214,11 @@ fn empty_mesh() -> Mesh {
     m
 }
 
-// ---------------------------------------------------------------------------
-// ECS resources & components
-// ---------------------------------------------------------------------------
-
 #[derive(Resource)]
 struct VisualizerConfig {
-    total_w: f32,    // horizontal span in world units
-    total_h: f32,    // maximum chart height in world units
-    baseline_y: f32, // y of the zero line
+    total_w: f32,
+    total_h: f32,
+    baseline_y: f32,
 }
 
 impl Default for VisualizerConfig {
@@ -276,7 +231,6 @@ impl Default for VisualizerConfig {
     }
 }
 
-/// Marker for each layer mesh so we can update them.
 #[derive(bevy::ecs::component::Component)]
 enum Layer {
     VelocityFill,
@@ -284,45 +238,30 @@ enum Layer {
     PressureLine,
     DensityLine,
     DivergenceLine,
-    FluxLine,
     ZeroDash,
 }
-
-// ---------------------------------------------------------------------------
-// Layer palette
-// ---------------------------------------------------------------------------
 
 const COL_VELOCITY_FILL: Color = Color::srgba(0.75, 0.90, 1.00, 0.18);
 const COL_VELOCITY_LINE: Color = Color::srgba(0.90, 0.97, 1.00, 0.95);
 const COL_PRESSURE: Color = Color::srgba(1.00, 0.55, 0.20, 0.85);
 const COL_DENSITY: Color = Color::srgba(0.40, 0.90, 0.70, 0.80);
 const COL_DIVERGENCE: Color = Color::srgba(0.80, 0.40, 1.00, 0.75);
-const COL_FLUX: Color = Color::srgba(1.00, 0.85, 0.20, 0.70);
 const COL_DASH: Color = Color::srgba(1.00, 1.00, 1.00, 0.30);
 
-// ---------------------------------------------------------------------------
-// Layer visibility toggles (dropdown menu)
-// ---------------------------------------------------------------------------
-
-/// Which curve a given mesh entity belongs to, for the purposes of the
-/// show/hide dropdown. The velocity fill + velocity line are grouped under
-/// one entry since they represent the same quantity.
 #[derive(bevy::ecs::component::Component, Clone, Copy, PartialEq, Eq, Debug)]
 enum LayerGroup {
     Velocity,
     Pressure,
     Density,
     Divergence,
-    Flux,
 }
 
 impl LayerGroup {
-    const ALL: [LayerGroup; 5] = [
+    const ALL: [LayerGroup; 4] = [
         LayerGroup::Velocity,
         LayerGroup::Pressure,
         LayerGroup::Density,
         LayerGroup::Divergence,
-        LayerGroup::Flux,
     ];
 
     fn label(&self) -> &'static str {
@@ -331,25 +270,19 @@ impl LayerGroup {
             LayerGroup::Pressure => "Pressure",
             LayerGroup::Density => "Density",
             LayerGroup::Divergence => "Divergence",
-            LayerGroup::Flux => "Flux",
         }
     }
 
-    /// Swatch color shown in the dropdown (uses the line color, since that's
-    /// the more legible of the two for velocity).
     fn swatch_color(&self) -> Color {
         match self {
             LayerGroup::Velocity => COL_VELOCITY_LINE,
             LayerGroup::Pressure => COL_PRESSURE,
             LayerGroup::Density => COL_DENSITY,
             LayerGroup::Divergence => COL_DIVERGENCE,
-            LayerGroup::Flux => COL_FLUX,
         }
     }
 }
 
-/// Which curves are currently enabled. Drives both the mesh Visibility and
-/// the checkbox swatches in the dropdown UI.
 #[derive(Resource)]
 struct LayerToggles {
     velocity: bool,
@@ -378,7 +311,6 @@ impl LayerToggles {
             LayerGroup::Pressure => self.pressure,
             LayerGroup::Density => self.density,
             LayerGroup::Divergence => self.divergence,
-            LayerGroup::Flux => self.flux,
         }
     }
 
@@ -388,38 +320,27 @@ impl LayerToggles {
             LayerGroup::Pressure => &mut self.pressure,
             LayerGroup::Density => &mut self.density,
             LayerGroup::Divergence => &mut self.divergence,
-            LayerGroup::Flux => &mut self.flux,
         };
         *slot = !*slot;
     }
 }
 
-/// Whether the dropdown panel is currently expanded.
 #[derive(Resource, Default)]
 struct DropdownState {
     open: bool,
 }
 
-/// Marker on the "Layers" button that opens/closes the panel.
 #[derive(bevy::ecs::component::Component)]
 struct DropdownToggleButton;
 
-/// Marker on the panel that contains the checkbox rows.
 #[derive(bevy::ecs::component::Component)]
 struct DropdownPanel;
 
-/// Marker on each clickable row; clicking flips the associated LayerGroup.
 #[derive(bevy::ecs::component::Component)]
 struct ToggleRow(LayerGroup);
 
-/// Marker on the little color swatch/checkbox inside each row, so we can
-/// dim it when its layer is switched off.
 #[derive(bevy::ecs::component::Component)]
 struct ToggleSwatch(LayerGroup);
-
-// ---------------------------------------------------------------------------
-// Setup
-// ---------------------------------------------------------------------------
 
 fn setup<R: RenderEnv1D>(
     mut cmd: Commands,
@@ -489,9 +410,7 @@ fn setup<R: RenderEnv1D>(
         &fields.divergence,
         COL_DIVERGENCE
     );
-    line!(Layer::FluxLine, LayerGroup::Flux, &fields.flux, COL_FLUX);
 
-    // Zero-line dash
     let dash_m = build_dash_mesh(cfg.baseline_y, cfg.total_w, 8.0, 6.0);
     cmd.spawn((
         Mesh2d(meshes.add(dash_m)),
@@ -508,14 +427,9 @@ fn layer_z(l: &Layer) -> f32 {
         Layer::PressureLine => 0.6,
         Layer::DensityLine => 0.7,
         Layer::DivergenceLine => 0.8,
-        Layer::FluxLine => 0.9,
         Layer::ZeroDash => 0.1,
     }
 }
-
-// ---------------------------------------------------------------------------
-// Dropdown UI
-// ---------------------------------------------------------------------------
 
 fn setup_ui(mut cmd: Commands) {
     cmd.spawn(Node {
@@ -526,7 +440,6 @@ fn setup_ui(mut cmd: Commands) {
         ..Default::default()
     })
     .with_children(|root| {
-        // The "Layers" toggle button.
         root.spawn((
             Button,
             DropdownToggleButton,
@@ -552,7 +465,6 @@ fn setup_ui(mut cmd: Commands) {
             ));
         });
 
-        // The dropdown panel, one row per toggleable curve. Starts closed.
         root.spawn((
             DropdownPanel,
             Node {
@@ -582,8 +494,6 @@ fn setup_ui(mut cmd: Commands) {
                         BackgroundColor(Color::NONE),
                     ))
                     .with_children(|row| {
-                        // Color swatch that doubles as a checkbox: filled with
-                        // the curve's color when enabled, empty when disabled.
                         row.spawn((
                             ToggleSwatch(group),
                             Node {
@@ -609,7 +519,6 @@ fn setup_ui(mut cmd: Commands) {
     });
 }
 
-/// Opens/closes the dropdown panel when the "Layers" button is pressed.
 fn dropdown_button_system(
     mut state: ResMut<DropdownState>,
     buttons: Query<&Interaction, (Changed<Interaction>, With<DropdownToggleButton>)>,
@@ -629,7 +538,6 @@ fn dropdown_button_system(
     }
 }
 
-/// Flips a curve on/off when its row is clicked, and updates the swatch.
 fn toggle_row_system(
     mut toggles: ResMut<LayerToggles>,
     rows: Query<(&Interaction, &ToggleRow), Changed<Interaction>>,
@@ -653,7 +561,6 @@ fn toggle_row_system(
     }
 }
 
-/// Shows/hides the actual chart meshes to match `LayerToggles`.
 fn apply_layer_visibility(
     toggles: Res<LayerToggles>,
     mut q: Query<(&LayerGroup, &mut Visibility)>,
@@ -669,10 +576,6 @@ fn apply_layer_visibility(
         };
     }
 }
-
-// ---------------------------------------------------------------------------
-// Update
-// ---------------------------------------------------------------------------
 
 fn update_layers<R: RenderEnv1D>(
     env: Res<R>,
@@ -704,10 +607,6 @@ fn update_layers<R: RenderEnv1D>(
                 let n = FluidFields::normalise(&fields.divergence);
                 build_line_mesh(&n, cfg.baseline_y, cfg.total_h, cfg.total_w, 2.5)
             }
-            Layer::FluxLine => {
-                let n = FluidFields::normalise(&fields.flux);
-                build_line_mesh(&n, cfg.baseline_y, cfg.total_h, cfg.total_w, 2.5)
-            }
             Layer::ZeroDash => continue,
         };
 
@@ -721,22 +620,16 @@ fn tick_simulation<R: RenderEnv1D>(mut env: ResMut<R>) {
     env.tick();
 }
 
-// ---------------------------------------------------------------------------
-// Entry point
-// ---------------------------------------------------------------------------
-
 pub fn start_render_1d<R: RenderEnv1D>(env: R) {
     App::new()
-        .add_plugins(
-            DefaultPlugins.set(WindowPlugin {
-                primary_window: Some(Window {
-                    title: "1D Fluid Visualizer".into(),
-                    resolution: (1400, 500).into(),
-                    ..Default::default()
-                }),
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "1D Fluid Visualizer".into(),
+                resolution: (1400, 500).into(),
                 ..Default::default()
-            }) ,
-        )
+            }),
+            ..Default::default()
+        }))
         .insert_resource(env)
         .insert_resource(VisualizerConfig::default())
         .insert_resource(LayerToggles::default())

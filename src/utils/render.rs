@@ -154,9 +154,8 @@ fn update_object_infos<R: RenderEnv2D + Resource>(
     render_env: Res<R>,
     mut objects: Query<(&mut RenderObject, &mut Transform), With<Mesh2d>>,
 ) {
-    for ((mut object, mut transform), new_object) in objects
-        .iter_mut()
-        .zip(render_env.render_infos())
+    for ((mut object, mut transform), new_object) in
+        objects.iter_mut().zip(render_env.render_infos())
     {
         transform.translation = Vec3::new(new_object.pos.x, new_object.pos.y, 0.0);
 
