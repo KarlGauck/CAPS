@@ -51,15 +51,17 @@ impl FluidFields {
             .collect();
 
         let mut pressure: Vec<f32> = divergence.iter().map(|d| -d).collect();
+
         let mean_p: f32 = pressure.iter().sum::<f32>() / n as f32;
         pressure.iter_mut().for_each(|p| *p -= mean_p);
 
         // from bernoulli's equation
-        let density =
-            pressure.iter().zip(u.iter())
-                .zip(pressure.iter().zip(u.iter()).skip(1))
-                .map(|((p1, v1), (p2, v2))| 2.0 * (p2 - p1) / (v1*v1 - v2*v2))
-                .collect::<Vec<_>>();
+        let density = pressure
+            .iter()
+            .zip(u.iter())
+            .zip(pressure.iter().zip(u.iter()).skip(1))
+            .map(|((p1, v1), (p2, v2))| 2.0 * (p2 - p1) / (v1 * v1 - v2 * v2))
+            .collect::<Vec<_>>();
 
         Self {
             velocity: u,
