@@ -1,3 +1,0 @@
-/home/karlg/dev/CAPS/solutions/10/build/CMakeFiles/solution10.dir
-/home/karlg/dev/CAPS/solutions/10/build/CMakeFiles/edit_cache.dir
-/home/karlg/dev/CAPS/solutions/10/build/CMakeFiles/rebuild_cache.dir

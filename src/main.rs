@@ -43,6 +43,10 @@ enum Commands {
         #[arg(value_enum)]
         ex: A8Ex,
     },
+    A9 {
+        #[arg(value_enum)]
+        ex: A9Ex,
+    },
     RenderTest,
 }
 
@@ -78,6 +82,16 @@ enum A6Ex {
 #[derive(clap::ValueEnum, Clone)]
 enum A8Ex {
     Ex1,
+    RenderFTCS,
+    RenderUpwind,
+    RenderLW,
+}
+
+#[derive(clap::ValueEnum, Clone)]
+enum A9Ex {
+    A,
+    B,
+    C,
 }
 
 fn main() {
@@ -111,7 +125,15 @@ fn main() {
         },
         Commands::A8 { ex } => match ex {
             A8Ex::Ex1 => assignment8::ex1(),
-        }
+            A8Ex::RenderFTCS => assignment8::render(assignment8::Solver::FTCS),
+            A8Ex::RenderUpwind => assignment8::render(assignment8::Solver::Upwind),
+            A8Ex::RenderLW => assignment8::render(assignment8::Solver::LaxWendroff),
+        },
+        Commands::A9 { ex } => match ex {
+            A9Ex::A => assignment9::ex_a(),
+            A9Ex::B => assignment9::ex_b(),
+            A9Ex::C => assignment9::ex_c(),
+        },
         Commands::RenderTest => render_test::run(),
     }
 

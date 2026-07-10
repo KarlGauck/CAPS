@@ -173,7 +173,11 @@ pub fn render_path() {
 
     let current = Vec4::new(x0, 0.0, 0.0, y0dot);
 
-    let renderer = RK4Renderer { system, current, time: 0.0f32 };
+    let renderer = RK4Renderer {
+        system,
+        current,
+        time: 0.0f32,
+    };
 
     start_render(renderer);
 }
