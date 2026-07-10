@@ -1,0 +1,1 @@
+/usr/bin/g++ @CMakeFiles/solution10.dir/objects1.rsp CMakeFiles/solution10.dir/cmake_device_link.o -o solution10 @CMakeFiles/solution10.dir/linkLibs.rsp -L"/opt/cuda/targets/x86_64-linux/lib/stubs" -L"/opt/cuda/targets/x86_64-linux/lib"
