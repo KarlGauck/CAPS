@@ -3,6 +3,20 @@
 #include <cuda_runtime.h>
 #include <cstdio>
 
+
+template <int N>
+struct ParticleData {
+    float[N] posX;
+    float[N] posY;
+    float[N] posZ;
+    float[N] velX;
+    float[N] velY;
+    float[N] velZ;
+    float[N] int_e;
+    float[N] mass;
+}
+
+
 // Checks a CUDA call and aborts on error
 #define CUDA_CHECK(call)                                                        \
     do {                                                                        \
@@ -22,6 +36,8 @@ __global__ void add_kernel(const T* a, const T* b, T* out, int n) {
     }
 }
 
+
+
 template <typename T>
 void launch_add(const T* d_a, const T* d_b, T* d_out, int n) {
     constexpr int block = 256;
@@ -30,3 +46,20 @@ void launch_add(const T* d_a, const T* d_b, T* d_out, int n) {
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 }
+
+template <int N> 
+void launch_sph_solve(ParticleData<N> *const particles) {
+    constexpr int block = 256;
+    int grid = (N + block - 1) / block;
+    solve_sph<N><<<grid, block>>>(particles);
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+}
+
+template <int N>
+__global__ solve_sph(ParticleData<N> *const particles) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    particles.poxX[i] += 1.0;
+}
+
+
