@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(CUDAToolkit REQUIRED)
 
-add_executable(solution10 src/main.cu)
+add_executable(solution10 src/main.cu src/kernel.cu)
 target_include_directories(solution10 PRIVATE include)
 set_target_properties(solution10 PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
