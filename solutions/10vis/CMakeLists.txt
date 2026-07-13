@@ -4,7 +4,7 @@ set(PROJECT_NAME triangle)
 
 project(${PROJECT_NAME})
 
-set (CMAKE_BUILD_TYPE Release)
+set (CMAKE_BUILD_TYPE Debug)
 
 set (CMAKE_CXX_STANDARD 26)
 set (CMAKE_CXX_FLAGS "-Wall -Wextra")

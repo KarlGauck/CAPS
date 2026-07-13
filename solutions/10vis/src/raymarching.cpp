@@ -13,6 +13,7 @@ std::string err_to_str(const RaymarchingError& err) {
     case RaymarchingError::GLAD_INIT_FAIL: return "glad init fail";
     case RaymarchingError::WINDOW_NOT_OPEN: return "window not open";
     case RaymarchingError::SHADER_LOAD_FAIL: return "shader could not be loaded";
+    case RaymarchingError::POINT_BUF_MAP_FAILED: return "point buffer mapping failed";
     default: return "Unknown error";
     }
 }
@@ -57,6 +58,9 @@ RMError Raymarching::run(std::function<std::span<Point>()> get_points) {
     log("starting render loop...");
 
     while(!should_close_window(_window)){
+        const auto sp_err = sync_points();
+        if (sp_err) return sp_err;
+
         const auto err = display();
         if (err) return err;
 
@@ -94,8 +98,8 @@ RMError Raymarching::init_gl_libs() {
         return RaymarchingError::GLFW_INIT_FAIL;
     }
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     _window = glfwCreateWindow(512, 512, "raymarching", NULL, NULL);
@@ -207,9 +211,10 @@ RMError Raymarching::init_gl() {
 
     // SSBO
     glGenBuffers(1, &_points_ssbo);
-
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, _points_ssbo);
     glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _points_ssbo);
 
     log("succesfully initialized OpenGL");
 
@@ -219,6 +224,29 @@ RMError Raymarching::init_gl() {
 RMError Raymarching::display() {
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    return {};
+}
+RMError Raymarching::sync_points() {
+    if (_points.empty()) return {};
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _points_ssbo);
+
+    std::lock_guard l(_access_points_mutex);
+
+    const auto size_bytes = _points.size() * sizeof(Point);
+
+    if (_points.size() > _points_ssbo_capacity || _points_ssbo_capacity == 0) {
+        _points_ssbo_capacity = _points.size();
+        glBufferData(GL_SHADER_STORAGE_BUFFER, size_bytes, _points.data(), GL_DYNAMIC_DRAW);
+    } else {
+        void* ptr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, size_bytes,
+            GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+        if (!ptr) {
+            return RaymarchingError::POINT_BUF_MAP_FAILED;
+        }
+        std::memcpy(ptr, _points.data(), size_bytes);
+        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    }
 
     return {};
 }
@@ -237,16 +265,8 @@ void Raymarching::data_loop_async() {
         std::lock_guard l(_access_points_mutex);
         const auto points = _get_points();
 
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _points_ssbo);
-
-        if (points.size() > _points_ssbo_capacity) {
-            _points_ssbo_capacity = points.size();
-            glBufferData(GL_SHADER_STORAGE_BUFFER, points.size_bytes(), points.data(), GL_DYNAMIC_DRAW);
-        } else {
-            void* ptr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, points.size_bytes(),
-                GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-            std::memcpy(ptr, points.data(), points.size_bytes());
-            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        }
+        _points.clear();
+        _points.reserve(points.size());
+        _points.append_range(points);
     }
 }

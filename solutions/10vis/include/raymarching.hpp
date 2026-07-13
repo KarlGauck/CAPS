@@ -25,6 +25,8 @@ enum class RaymarchingError {
     WINDOW_NOT_OPEN,
     SHADER_LOAD_FAIL,
     NOT_INITIALIZED,
+
+    POINT_BUF_MAP_FAILED,
 };
 
 using RMError = std::optional<RaymarchingError>;
@@ -68,10 +70,12 @@ private:
 
     std::function<std::span<Point>()> _get_points;
     void data_loop_async();
+    std::vector<Point> _points;
+    RMError sync_points();
 
     // GL stuff
     GLuint _points_ssbo;
-    size_t _points_ssbo_capacity;
+    size_t _points_ssbo_capacity{0};
 
     GLuint load_shader(std::string path, GLenum shader_type);
     GLuint load_shaders(std::string vert, std::string frag);
