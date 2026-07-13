@@ -1,43 +1,38 @@
 #include <cstdio>
-#include <vector>
-#include <numeric>
-
+#include <iostream>
+#include <chrono>
 #include "kernel.cuh"
+#include "simulation.cuh"
+#include "particle_loader.h"
 
 int main() {
-    constexpr int N = 1024;
+    constexpr int N = 250047; // 63^3: the +0.5 periodic-boundary layer is excluded at load
+    constexpr float total_time = 10e-2;
+    float time = 0;
 
-    // Host data
-    std::vector<float> h_a(N), h_b(N), h_out(N);
-    std::iota(h_a.begin(), h_a.end(), 0.0f);   // 0, 1, 2, ...
-    std::iota(h_b.begin(), h_b.end(), 100.0f); // 100, 101, 102, ...
+    auto* host = new SimulationData<N>();
+    ParticleFile pf = load_particles("../springel_sedov_smeared.0000");
+    copy_to_particle_data(pf, *host);
+    host->smoothing_length =  0.03984126984126984;
 
-    // Device allocations
-    float *d_a, *d_b, *d_out;
-    CUDA_CHECK(cudaMalloc(&d_a,   N * sizeof(float)));
-    CUDA_CHECK(cudaMalloc(&d_b,   N * sizeof(float)));
-    CUDA_CHECK(cudaMalloc(&d_out, N * sizeof(float)));
+    Simulation sim { host, false };
 
-    CUDA_CHECK(cudaMemcpy(d_a, h_a.data(), N * sizeof(float), cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(d_b, h_b.data(), N * sizeof(float), cudaMemcpyHostToDevice));
+    auto wall_start = std::chrono::steady_clock::now();
 
-    launch_add<float>(d_a, d_b, d_out, N);
+    while (time < total_time) {
+        float dt = sim.step();
+        time += dt;
 
-    CUDA_CHECK(cudaMemcpy(h_out.data(), d_out, N * sizeof(float), cudaMemcpyDeviceToHost));
-
-    // Verify
-    bool ok = true;
-    for (int i = 0; i < N; ++i) {
-        float expected = h_a[i] + h_b[i];
-        if (h_out[i] != expected) {
-            fprintf(stderr, "Mismatch at %d: got %f, expected %f\n", i, h_out[i], expected);
-            ok = false;
-        }
+        std::cout << "[" << int(time/total_time * 100) << "%] Time: " << time << " / " << total_time << " (dt = " << dt << ")" << std::endl;
     }
-    printf("%s\n", ok ? "PASS" : "FAIL");
 
-    cudaFree(d_a);
-    cudaFree(d_b);
-    cudaFree(d_out);
-    return ok ? 0 : 1;
+    auto wall_end = std::chrono::steady_clock::now();
+    double elapsed = std::chrono::duration<double>(wall_end - wall_start).count();
+    std::cout << "Sim loop: " << elapsed << " s" << std::endl;
+
+    sim.fetch_all();
+
+    write_distribution_csv(*(sim.host_data), "../resulting_distribution.csv");
+
+    return 0;
 }

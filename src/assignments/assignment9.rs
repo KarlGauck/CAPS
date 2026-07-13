@@ -9,7 +9,6 @@ pub fn ex_a() {
     let cs = 1.0f64;
     let courant = 0.5;
     let t_end = 100.0;
-
     let mut q1 = vec![0.0; n];
     let mut q2 = vec![0.0; n];
 
@@ -34,7 +33,6 @@ pub fn ex_a() {
                 .max_x(l),
             &format!("solutions/09/a/rho_{:05}.png", step),
         );
-
         let vmax = (0..n).map(|i| (q2[i] / q1[i]).abs()).fold(0.0, f64::max) + cs;
 
         // timestep with courant condition
