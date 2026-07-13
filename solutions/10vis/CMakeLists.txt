@@ -26,6 +26,5 @@ foreach(glsl_file ${GLSL_FILES})
     configure_file(${glsl_file} . COPYONLY)
 endforeach(glsl_file)
 
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} GLEW)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} glfw)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} GL)

@@ -209,12 +209,19 @@ RMError Raymarching::init_gl() {
     glGenVertexArrays(1, &vao_id);
     glBindVertexArray(vao_id);
 
-    // SSBO
+    // Point data
     glGenBuffers(1, &_points_ssbo);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, _points_ssbo);
     glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
 
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _points_ssbo);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _points_ssbo); // binding = 0
+
+    // Config
+    glGenBuffers(1, &_config_ubo);
+    glBindBuffer(GL_UNIFORM_BUFFER, _config_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(ConfigData), nullptr, GL_DYNAMIC_DRAW);
+
+    glBindBufferBase(GL_UNIFORM_BUFFER, 1, _config_ubo); // binding = 1
 
     log("succesfully initialized OpenGL");
 
@@ -229,6 +236,9 @@ RMError Raymarching::display() {
 }
 RMError Raymarching::sync_points() {
     if (_points.empty()) return {};
+
+    // update points ssbo buffer
+
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, _points_ssbo);
 
     std::lock_guard l(_access_points_mutex);
@@ -247,6 +257,16 @@ RMError Raymarching::sync_points() {
         std::memcpy(ptr, _points.data(), size_bytes);
         glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
     }
+
+    // update config ubo
+
+    ConfigData cfg {
+        point_radius,
+        static_cast<int>(_points.size())
+    };
+
+    glBindBuffer(GL_UNIFORM_BUFFER, _config_ubo);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(ConfigData), &cfg);
 
     return {};
 }

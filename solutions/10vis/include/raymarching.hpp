@@ -13,9 +13,23 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 
+// ==========================================
+// GPU STRUCTS
+// ==========================================
+
 struct Point {
     float x, y, z;
 };
+
+struct alignas(16) ConfigData {
+    float point_radius;
+    int point_count;
+    float _pad[2]; // 16 bytes alignment
+};
+
+// ==========================================
+// RAYMARCHING CLASS
+// ==========================================
 
 enum class RaymarchingError {
     GLFW_INIT_FAIL,
@@ -76,6 +90,8 @@ private:
     // GL stuff
     GLuint _points_ssbo;
     size_t _points_ssbo_capacity{0};
+
+    GLuint _config_ubo;
 
     GLuint load_shader(std::string path, GLenum shader_type);
     GLuint load_shaders(std::string vert, std::string frag);
