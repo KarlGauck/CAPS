@@ -51,6 +51,23 @@ struct SimulationData {
     float smoothing_length;
 };
 
+
+template <int N>
+__host__ __device__ Vec3 pos_diff(SimulationData<N>* sim_data, int i, int j) {
+    Vec3& a = sim_data->pos[i];
+    Vec3& b = sim_data->pos[j];
+
+    float dx = a.x - b.x;
+    float dy = a.y - b.y;
+    float dz = a.z - b.z;
+
+    if (abs(dx) > 0.5) dx -= copysign(1.0f, dx);
+    if (abs(dy) > 0.5) dy -= copysign(1.0f, dy);
+    if (abs(dz) > 0.5) dz -= copysign(1.0f, dz);
+
+    return { dx, dy, dz };
+}
+
 __host__ __device__ int mod(int a, int n);
 __host__ __device__ int hash_index(const Vec3& pos, float smoothing_length);
 
@@ -153,9 +170,10 @@ __device__ void for_each_neigbour(SimulationData<N>* sim_data, int i, Callback c
         int end   = start + bucket_sizes[bucket];
         for (int j = start; j < end; j++) {
             int p = sim_data->buckets[j];
-            if (sqMag(diff(sim_data->pos[i], sim_data->pos[p])) >= pow(sim_data->smoothing_length, 2))
+            Vec3 r = pos_diff(sim_data, i, p);
+            if (sqMag(r) >= sim_data->smoothing_length * sim_data->smoothing_length)
                 continue;
-            callback(p);
+            callback(p, r);
         }
     }
 }
@@ -163,20 +181,19 @@ __device__ void for_each_neigbour(SimulationData<N>* sim_data, int i, Callback c
 constexpr float PI    = 3.1415926535f;
 constexpr float sigma = 8.0f / PI;
 
-__host__ __device__ float kernel_function(const Vec3& p1, const Vec3& p2, float smoothing_length);
-__host__ __device__ float kernel_derivative(const Vec3& p1, const Vec3& p2, float smoothing_length);
-__host__ __device__ Vec3  kernel_gradient(const Vec3& center, const Vec3& sample, float smoothing_length);
+__host__ __device__ float kernel_function(const Vec3& r, float smoothing_length, float sl3);
+__host__ __device__ Vec3  kernel_gradient(const Vec3& r, float smoothing_length, float sl4);
 
 constexpr float alpha = 1;
 constexpr float beta  = 2;
 
 template <int N>
-__global__ void solve_density(SimulationData<N>* sim_data) {
+__global__ void solve_density(SimulationData<N>* sim_data, float sl3) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= N) return;
     float density = 0;
-    for_each_neigbour(sim_data, i, [&](int neighbour) {
-        density += sim_data->mass[neighbour] * kernel_function(sim_data->pos[i], sim_data->pos[neighbour], sim_data->smoothing_length);
+    for_each_neigbour(sim_data, i, [&](int neighbour, Vec3& r) {
+        density += sim_data->mass[neighbour] * kernel_function(r, sim_data->smoothing_length, sl3);
     });
     sim_data->density[i] = density;
     float gamma = 5.0f / 3.0f;
@@ -186,21 +203,22 @@ __global__ void solve_density(SimulationData<N>* sim_data) {
 }
 
 template <int N>
-__global__ void solve_sph(SimulationData<N>* sim_data, float dt) {
+__global__ void solve_sph(SimulationData<N>* sim_data, float dt, float sl4) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= N) return;
 
     Vec3  accelaration = {};
     float deps_dt = 0;
 
-    for_each_neigbour(sim_data, i, [&](int neighbour) {
-        Vec3  kernel_grad = kernel_gradient(sim_data->pos[i], sim_data->pos[neighbour], sim_data->smoothing_length);
+    float pressure_per_density2 = sim_data->pressure[i] / (sim_data->density[i]*sim_data->density[i]);
+
+    for_each_neigbour(sim_data, i, [&](int neighbour, Vec3& del_pos) {
+        Vec3  kernel_grad = kernel_gradient(del_pos, sim_data->smoothing_length, sl4);
         float mdp_term = sim_data->mass[neighbour] * (
-                            sim_data->pressure[i]        / pow(sim_data->density[i], 2) +
-                            sim_data->pressure[neighbour] / pow(sim_data->density[neighbour], 2));
+                            pressure_per_density2 +
+                            sim_data->pressure[neighbour] / (sim_data->density[neighbour]*sim_data->density[neighbour]));
 
         Vec3 del_vel = diff(sim_data->vel[i], sim_data->vel[neighbour]);
-        Vec3 del_pos = diff(sim_data->pos[i], sim_data->pos[neighbour]);
 
         accelaration.add(prod(-1 * mdp_term, kernel_grad));
         deps_dt += 0.5f * mdp_term * dot(del_vel, kernel_grad);
@@ -211,8 +229,8 @@ __global__ void solve_sph(SimulationData<N>* sim_data, float dt) {
             float c   = (sim_data->sound_speed[i] + sim_data->sound_speed[neighbour]) / 2;
             float rho = (sim_data->density[i]      + sim_data->density[neighbour])      / 2;
             float mu  = sim_data->smoothing_length * direction_term /
-                        (sqMag(del_pos) + eps * pow(sim_data->smoothing_length, 2));
-            float PI_ij = (-alpha * c * mu + beta * pow(mu, 2)) / rho;
+                        (sqMag(del_pos) + eps * sim_data->smoothing_length * sim_data->smoothing_length);
+            float PI_ij = (-alpha * c * mu + beta * mu * mu) / rho;
 
             accelaration.add(prod(-PI_ij * sim_data->mass[neighbour], kernel_grad));
             deps_dt += 0.5f * sim_data->mass[neighbour] * PI_ij * dot(del_vel, kernel_grad);
@@ -232,6 +250,10 @@ __global__ void integrate_sph(SimulationData<N>* sim_data, float dt) {
     sim_data->pos[i].add(prod(sim_data->vel[i], dt));
     sim_data->int_e[i] += sim_data->deps_dt[i] * dt;
 
+    sim_data->pos[i].x -= floor(sim_data->pos[i].x + 0.5f);
+    sim_data->pos[i].y -= floor(sim_data->pos[i].y + 0.5f);
+    sim_data->pos[i].z -= floor(sim_data->pos[i].z + 0.5f);
+
     int cell     = sim_data->grid_cell[i];
     int new_cell = hash_index(sim_data->pos[i], sim_data->smoothing_length);
     if (cell != new_cell) {
@@ -242,9 +264,9 @@ __global__ void integrate_sph(SimulationData<N>* sim_data, float dt) {
 }
 
 template <int N>
-void launch_solve_density(SimulationData<N>* const sim_data) {
+void launch_solve_density(SimulationData<N>* const sim_data, float sl3) {
     int grid = (N + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    solve_density<N><<<grid, BLOCK_SIZE>>>(sim_data);
+    solve_density<N><<<grid, BLOCK_SIZE>>>(sim_data, sl3);
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 }
@@ -258,9 +280,10 @@ void launch_integrate_sph(SimulationData<N>* const sim_data, float dt) {
 }
 
 template <int N>
-void launch_sph_solve(SimulationData<N>* const sim_data, float dt) {
+void launch_sph_solve(SimulationData<N>* const sim_data, float dt, float sl4) {
     int grid = (N + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    solve_sph<N><<<grid, BLOCK_SIZE>>>(sim_data, dt);
+    solve_sph<N><<<grid, BLOCK_SIZE>>>(sim_data, dt, sl4);
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 }
+

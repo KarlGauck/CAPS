@@ -65,11 +65,15 @@ inline ParticleFile load_particles(const char* path) {
     pf.mass.reserve(1 << 18);
     pf.int_e.reserve(1 << 18);
 
+    constexpr double BOUNDARY = 0.5 - 1e-9;
     double x, y, z, vx, vy, vz, m, eps;
     while (fscanf(fp, "%lf %lf %lf %lf %lf %lf %lf %lf", &x, &y, &z, &vx, &vy, &vz, &m, &eps) == 8) {
         // consume any remaining fields on the line (e.g. type flag)
         int c;
         while ((c = fgetc(fp)) != '\n' && c != EOF) {}
+
+        // skip the +0.5 boundary layer — those particles are periodic duplicates of x=-0.5
+        if (x > BOUNDARY || y > BOUNDARY || z > BOUNDARY) continue;
 
         pf.pos.push_back({ (float)x, (float)y, (float)z });
         pf.vel.push_back({ (float)vx, (float)vy, (float)vz });

@@ -52,30 +52,32 @@ __global__ void copy_temp_to_prefix() {
     if (i < BUCKET_COUNT) bucket_prefix_sum[i] = bucket_scan_temp[i];
 }
 
-// Kernel functions
-__host__ __device__ float kernel_function(const Vec3& p1, const Vec3& p2, float smoothing_length) {
-    float rh = mag(diff(p1, p2)) / smoothing_length;
+// Kernel functions — r = pos_i - pos_j (periodic minimum-image difference)
+__host__ __device__ float kernel_function(const Vec3& r, float smoothing_length, float sl3) {
+    float rh = mag(r) / smoothing_length;
     float val;
-    if      (rh < 0.5f) val = 6*pow(rh,3) - 6*pow(rh,2) + 1;
-    else if (rh <= 1.0f) val = 2*pow(1-rh, 3);
+    if      (rh < 0.5f) val = 6*rh*rh*rh - 6*rh*rh + 1;
+    else if (rh <= 1.0f) {
+        float rh1 = 1-rh;
+        val = 2*rh1*rh1*rh1;
+    } 
     else                 val = 0;
-    return sigma * val / pow(smoothing_length, 3);
+    return sigma * val / sl3;
 }
 
-__host__ __device__ float kernel_derivative(const Vec3& p1, const Vec3& p2, float smoothing_length) {
-    float rh = mag(diff(p1, p2)) / smoothing_length;
-    float val;
-    if      (rh < 0.5f)  val = 3*pow(rh,2) - 2*rh;
-    else if (rh <= 1.0f) val = -pow(1-rh, 2);
-    else                 val = 0;
-    return 6*sigma*val / pow(smoothing_length, 4);
-}
-
-__host__ __device__ Vec3 kernel_gradient(const Vec3& center, const Vec3& sample, float smoothing_length) {
-    Vec3  r     = diff(center, sample);
+__host__ __device__ Vec3 kernel_gradient(const Vec3& r, float smoothing_length, float sl4) {
     float r_mag = mag(r);
     if (r_mag < 1e-8f) return {0.0f, 0.0f, 0.0f};
-    return prod(r, kernel_derivative(center, sample, smoothing_length) / r_mag);
+    float rh = r_mag / smoothing_length;
+    float val;
+    if      (rh < 0.5f)  val = 3*rh*rh - 2*rh;
+    else if (rh <= 1.0f) {
+        float rh1 = 1-rh;
+        val = -rh1*rh1;
+    }
+    else                 val = 0;
+    float deriv = 6*sigma*val / sl4;
+    return prod(r, deriv / r_mag);
 }
 
 void fill_prefix_sum() {

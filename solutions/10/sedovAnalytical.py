@@ -213,9 +213,9 @@ if __name__ == '__main__':
 
     try:
         sim = np.loadtxt('resulting_distribution.csv', delimiter=',')
-        ax1.scatter(sim[:, 0], sim[:, 1], s=0.5, alpha=0.3, label="rho (simulation)")
-        ax2.scatter(sim[:, 0], sim[:, 2], s=0.5, alpha=0.3, label="pressure (simulation)")
-        ax3.scatter(sim[:, 0], sim[:, 3], s=0.5, alpha=0.3, label="internal energy (simulation)")
+        ax1.scatter(sim[:, 0], sim[:, 1], s=0.5, alpha=0.3, label="rho (simulation)", color="red")
+        ax2.scatter(sim[:, 0], sim[:, 2], s=0.5, alpha=0.3, label="pressure (simulation)", color="red")
+        ax3.scatter(sim[:, 0], sim[:, 3], s=0.5, alpha=0.3, label="internal energy (simulation)", color="red")
     except OSError:
         print("resulting_distribution.csv not found — skipping simulation scatter")
 
