@@ -24,7 +24,8 @@ struct Point {
 struct alignas(16) ConfigData {
     float point_radius;
     int point_count;
-    float _pad[2]; // 16 bytes alignment
+    float epsilon;
+    float _pad[1]; // 16 bytes alignment
 };
 
 // ==========================================
@@ -58,6 +59,7 @@ public:
     RMError run(std::function<std::span<Point>()>);
 
     float point_radius = .5f;
+    float epsilon = 0.001f;
 
 private:
 

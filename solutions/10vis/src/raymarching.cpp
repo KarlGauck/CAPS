@@ -262,7 +262,8 @@ RMError Raymarching::sync_points() {
 
     ConfigData cfg {
         point_radius,
-        static_cast<int>(_points.size())
+        static_cast<int>(_points.size()),
+        epsilon
     };
 
     glBindBuffer(GL_UNIFORM_BUFFER, _config_ubo);
