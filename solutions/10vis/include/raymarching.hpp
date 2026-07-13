@@ -1,5 +1,8 @@
 #pragma once
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <vector>
 #include <optional>
 #include <string>
@@ -17,15 +20,31 @@
 // GPU STRUCTS
 // ==========================================
 
+#define POINT_SSBO_BUFFER_BINDING 0
 struct Point {
     float x, y, z;
 };
 
+#define CONFIG_UBO_BINDING 1
 struct alignas(16) ConfigData {
     float point_radius;
     int point_count;
     float epsilon;
-    float _pad[1]; // 16 bytes alignment
+    float res_x;
+    float res_y;
+    float _pad[3]; // 16 bytes alignment
+};
+
+#define CAMERA_UBO_BINDING 2
+struct alignas(16) CameraData {
+    glm::vec3 position;
+    float _pad1;
+    glm::vec3 forward;
+    float _pad2;
+    glm::vec3 right;
+    float _pad3;
+    glm::vec3 up;
+    float _pad4;
 };
 
 // ==========================================
@@ -60,6 +79,11 @@ public:
 
     float point_radius = .5f;
     float epsilon = 0.001f;
+
+    void process_input(GLFWwindow* window);
+    void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+    void sync_camera();
+    static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
 private:
 
@@ -97,4 +121,16 @@ private:
 
     GLuint load_shader(std::string path, GLenum shader_type);
     GLuint load_shaders(std::string vert, std::string frag);
+
+    // Camera state
+    glm::vec3 _camera_pos{ 0.0f, 0.0f, -5.0f };
+    float _camera_yaw = -90.0f;
+    float _camera_pitch = 0.0f;
+    float _last_x = 256.0f;
+    float _last_y = 256.0f;
+    bool _first_mouse = true;
+    float _camera_speed = 0.05f;
+    float _mouse_sensitivity = 0.1f;
+
+    GLuint _camera_ubo;
 };
