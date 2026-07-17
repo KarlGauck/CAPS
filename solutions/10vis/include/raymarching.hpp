@@ -77,7 +77,7 @@ public:
     // This blocks until the window is closed.
     RMError run(std::function<std::span<Point>()>);
 
-    float point_radius = .5f;
+    float point_radius = .05f;
     float epsilon = 0.001f;
 
     void process_input(GLFWwindow* window);
