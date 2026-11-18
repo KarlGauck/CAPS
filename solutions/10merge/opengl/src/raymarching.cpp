@@ -389,11 +389,11 @@ void Raymarching::data_loop_async() {
             if (_stop_data_thread) return;
         }
 
-        std::lock_guard l(_access_points_mutex);
         const auto points = _get_points();
 
+        std::lock_guard l(_access_points_mutex);
         _points.clear();
         _points.reserve(points.size());
-        _points.append_range(points);
+        _points.insert(_points.end(), points.begin(), points.end());
     }
 }

@@ -12,7 +12,7 @@ int main() {
     
     auto* host_data = new SimulationData<N>();
     
-    ParticleFile pf = load_particles("cuda/springel_sedov_smeared.0000");
+    ParticleFile pf = load_particles("../cuda/springel_sedov_smeared.0000");
     copy_to_particle_data(pf, *host_data);
     host_data->smoothing_length = 0.03984126984126984;
 
@@ -30,7 +30,7 @@ int main() {
     });
 
     if (err) {
-        std::cerr << "Raymarching error occurred: " << err << std::endl;
+        std::cerr << "Raymarching error occurred" << std::endl;
     }
 
     delete host_data;

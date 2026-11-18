@@ -6,6 +6,7 @@
 #include <vector>
 #include <optional>
 #include <string>
+#include <span>
 #include <thread>
 #include <mutex>
 #include <latch>

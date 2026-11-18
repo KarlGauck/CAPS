@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
-project(sph_raymarcher CUDA CXX)
+project(sph_raymarcher CUDA CXX C)
 
-set(CMAKE_CUDA_STANDARD 17)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CUDA_STANDARD 23)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Wall")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 
@@ -11,7 +11,7 @@ find_package(CUDAToolkit REQUIRED)
 
 # OpenGL/GLFW Dependencies
 find_package(OpenGL REQUIRED)
-find_package(GLFW3 REQUIRED)
+# find_package(GLFW3 REQUIRED)
 
 include_directories(
     cuda/include
@@ -25,7 +25,7 @@ set(CUDA_SOURCES
 )
 
 set(CPP_SOURCES
-    main.cpp
+    main.cu # .cu because of the includes
     opengl/src/raymarching.cpp
     opengl/src/glad.c
 )
